@@ -1,0 +1,15 @@
+export const paths = {
+  root: '/',
+  login: '/login',
+  dashboard: '/dashboard',
+  monitoring: '/monitoring',
+  monitoringShifts: '/monitoring/shifts',
+  monitoringPumps: '/monitoring/pumps',
+  monitoringTanks: '/monitoring/tanks',
+  shiftDetails: (id: string) => `/monitoring/shifts/${id}`,
+  fuelSales: '/fuel-sales',
+  pumpTransactions: (id: string) => `/monitoring/pumps/${id}/transactions`,
+  tankDetails: (id: string) => `/monitoring/tanks/${id}`,
+  reports: '/reports',
+  settings: '/settings',
+} as const;

@@ -1,0 +1,10 @@
+@tailwind utilities;
+
+/* Global styles */
+html,
+body,
+#root {
+  height: 100%;
+}
+
+/* Custom utility overrides if needed */

@@ -1,0 +1,62 @@
+@tailwind utilities;
+
+:root {
+  /* Sidebar — dark teal-green (matching advanced POS) */
+  --sidebar-bg: #1e3835;
+  --sidebar-hover: rgba(255, 255, 255, 0.06);
+  --sidebar-active-bg: rgba(255, 255, 255, 0.1);
+  --sidebar-active-border: transparent;
+  --sidebar-text: rgba(255, 255, 255, 0.85);
+  --sidebar-text-dim: rgba(255, 255, 255, 0.5);
+  --sidebar-text-active: #ffffff;
+  --sidebar-icon-active: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.06);
+
+  /* Header — light */
+  --header-bg: #ffffff;
+  --header-border: #f0f0f0;
+
+  /* Fuel Orange — action & attention only */
+  --fuel-orange: #f97316;
+  --fuel-orange-hover: #ea580c;
+  --fuel-orange-deep: #c2410c;
+  --fuel-orange-light: #fff7ed;
+  --fuel-orange-focus: rgba(249, 115, 22, 0.35);
+
+  /* Green tokens */
+  --brand-green: #22c55e;
+  --brand-green-light: rgba(34, 197, 94, 0.1);
+
+  /* Content area */
+  --content-bg: #f8f9fa;
+  --card-bg: #ffffff;
+}
+
+body {
+  background: var(--content-bg);
+  margin: 0;
+}
+
+/* Sidebar nav item hover */
+.nav-item:hover {
+  background: var(--sidebar-hover) !important;
+}
+
+/* Logout button hover state */
+.logout-btn:hover {
+  background: var(--fuel-orange-hover) !important;
+}
+
+/* Mobile overlay backdrop */
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 99;
+  opacity: 0;
+  animation: fadeIn 200ms ease forwards;
+}
+
+@keyframes fadeIn {
+  to { opacity: 1; }
+}
