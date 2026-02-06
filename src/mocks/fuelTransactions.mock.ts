@@ -1,5 +1,302 @@
-import type { FuelTransaction } from '@/types/fuel';
+import type { FuelTransaction, RawFuelTransaction, VerifiedFuelTransaction } from '@/types/fuel';
 
+/* ─────────────────────────────────────────────────────────────
+   RAW TRANSACTIONS — straight from PTS2 controller.
+   These have NO payment type. Payment type is assigned by the
+   manager during shift verification.
+   ───────────────────────────────────────────────────────────── */
+export const mockRawTransactions: RawFuelTransaction[] = [
+  // ── Shift SH-001 (John Mwale) — verified shift ──
+  {
+    id: 'raw-001',
+    companyId: 'company-001',
+    stationId: 'station-001',
+    shiftId: 'SH-001',
+    attendantId: 'att-1',
+    tagNumber: 'RFID-0001-A',
+    fullName: 'John Mwale',
+    pumpId: 1,
+    time: '2026-02-06T07:15:00Z',
+    amount: 1152.60,
+    currency: 'ZMW',
+    transactionId: 10001,
+    isVerified: true,
+    createdAt: '2026-02-06T07:15:05Z',
+  },
+  {
+    id: 'raw-002',
+    companyId: 'company-001',
+    stationId: 'station-001',
+    shiftId: 'SH-001',
+    attendantId: 'att-1',
+    tagNumber: 'RFID-0001-A',
+    fullName: 'John Mwale',
+    pumpId: 2,
+    time: '2026-02-06T07:42:00Z',
+    amount: 1904.00,
+    currency: 'ZMW',
+    transactionId: 10002,
+    isVerified: true,
+    createdAt: '2026-02-06T07:42:05Z',
+  },
+  {
+    id: 'raw-005',
+    companyId: 'company-001',
+    stationId: 'station-001',
+    shiftId: 'SH-001',
+    attendantId: 'att-1',
+    tagNumber: 'RFID-0001-A',
+    fullName: 'John Mwale',
+    pumpId: 2,
+    time: '2026-02-06T09:20:00Z',
+    amount: 2867.90,
+    currency: 'ZMW',
+    transactionId: 10005,
+    isVerified: true,
+    createdAt: '2026-02-06T09:20:05Z',
+  },
+
+  // ── Shift SH-002 (Peter Banda) — ended, awaiting verification ──
+  {
+    id: 'raw-003',
+    companyId: 'company-001',
+    stationId: 'station-001',
+    shiftId: 'SH-002',
+    attendantId: 'att-2',
+    tagNumber: 'RFID-0002-B',
+    fullName: 'Peter Banda',
+    pumpId: 1,
+    time: '2026-02-06T08:10:00Z',
+    amount: 765.00,
+    currency: 'ZMW',
+    transactionId: 10003,
+    isVerified: false,
+    createdAt: '2026-02-06T08:10:05Z',
+  },
+  {
+    id: 'raw-004',
+    companyId: 'company-001',
+    stationId: 'station-001',
+    shiftId: 'SH-002',
+    attendantId: 'att-2',
+    tagNumber: 'RFID-0002-B',
+    fullName: 'Peter Banda',
+    pumpId: 3,
+    time: '2026-02-06T08:55:00Z',
+    amount: 1422.90,
+    currency: 'ZMW',
+    transactionId: 10004,
+    isVerified: false,
+    createdAt: '2026-02-06T08:55:05Z',
+  },
+
+  // ── Shift SH-003 (Mary Zulu) — verified shift ──
+  {
+    id: 'raw-006',
+    companyId: 'company-001',
+    stationId: 'station-001',
+    shiftId: 'SH-003',
+    attendantId: 'att-3',
+    tagNumber: 'RFID-0003-C',
+    fullName: 'Mary Zulu',
+    pumpId: 1,
+    time: '2026-02-06T00:05:00Z',
+    amount: 510.00,
+    currency: 'ZMW',
+    transactionId: 10006,
+    isVerified: true,
+    createdAt: '2026-02-06T00:05:05Z',
+  },
+  {
+    id: 'raw-007',
+    companyId: 'company-001',
+    stationId: 'station-001',
+    shiftId: 'SH-003',
+    attendantId: 'att-3',
+    tagNumber: 'RFID-0003-C',
+    fullName: 'Mary Zulu',
+    pumpId: 3,
+    time: '2026-02-06T02:45:00Z',
+    amount: 1020.00,
+    currency: 'ZMW',
+    transactionId: 10007,
+    isVerified: true,
+    createdAt: '2026-02-06T02:45:05Z',
+  },
+
+  // ── Shift SH-004 (James Phiri) — active shift ──
+  {
+    id: 'raw-008',
+    companyId: 'company-001',
+    stationId: 'station-001',
+    shiftId: 'SH-004',
+    attendantId: 'att-4',
+    tagNumber: 'RFID-0004-D',
+    fullName: 'James Phiri',
+    pumpId: 2,
+    time: '2026-02-06T11:30:00Z',
+    amount: 1554.14,
+    currency: 'ZMW',
+    transactionId: 10008,
+    isVerified: false,
+    createdAt: '2026-02-06T11:30:05Z',
+  },
+
+  // ── Shift SH-005 (Peter Banda) — 2nd ended shift awaiting verification ──
+  {
+    id: 'raw-009',
+    companyId: 'company-001',
+    stationId: 'station-001',
+    shiftId: 'SH-005',
+    attendantId: 'att-2',
+    tagNumber: 'RFID-0002-B',
+    fullName: 'Peter Banda',
+    pumpId: 1,
+    time: '2026-02-05T15:20:00Z',
+    amount: 890.00,
+    currency: 'ZMW',
+    transactionId: 10009,
+    isVerified: false,
+    createdAt: '2026-02-05T15:20:05Z',
+  },
+  {
+    id: 'raw-010',
+    companyId: 'company-001',
+    stationId: 'station-001',
+    shiftId: 'SH-005',
+    attendantId: 'att-2',
+    tagNumber: 'RFID-0002-B',
+    fullName: 'Peter Banda',
+    pumpId: 3,
+    time: '2026-02-05T16:10:00Z',
+    amount: 2100.00,
+    currency: 'ZMW',
+    transactionId: 10010,
+    isVerified: false,
+    createdAt: '2026-02-05T16:10:05Z',
+  },
+  {
+    id: 'raw-011',
+    companyId: 'company-001',
+    stationId: 'station-001',
+    shiftId: 'SH-005',
+    attendantId: 'att-2',
+    tagNumber: 'RFID-0002-B',
+    fullName: 'Peter Banda',
+    pumpId: 1,
+    time: '2026-02-05T17:30:00Z',
+    amount: 450.50,
+    currency: 'ZMW',
+    transactionId: 10011,
+    isVerified: false,
+    createdAt: '2026-02-05T17:30:05Z',
+  },
+];
+
+/* ─────────────────────────────────────────────────────────────
+   VERIFIED TRANSACTIONS — manager has verified and assigned
+   payment types. Only verified shifts have these.
+   ───────────────────────────────────────────────────────────── */
+export const mockVerifiedTransactions: VerifiedFuelTransaction[] = [
+  // ── From SH-001 (John Mwale) ──
+  {
+    id: 'vtx-001',
+    rawId: 'raw-001',
+    companyId: 'company-001',
+    stationId: 'station-001',
+    shiftId: 'SH-001',
+    attendantId: 'att-1',
+    paymentType: 'cash',
+    verifiedByUserId: 'demo-user-1',
+    verifiedAt: '2026-02-06T14:30:00Z',
+    amount: 1152.60,
+    currency: 'ZMW',
+    time: '2026-02-06T07:15:00Z',
+    tagNumber: 'RFID-0001-A',
+    fullName: 'John Mwale',
+    pumpId: 1,
+    transactionId: 10001,
+  },
+  {
+    id: 'vtx-002',
+    rawId: 'raw-002',
+    companyId: 'company-001',
+    stationId: 'station-001',
+    shiftId: 'SH-001',
+    attendantId: 'att-1',
+    paymentType: 'card',
+    verifiedByUserId: 'demo-user-1',
+    verifiedAt: '2026-02-06T14:30:00Z',
+    amount: 1904.00,
+    currency: 'ZMW',
+    time: '2026-02-06T07:42:00Z',
+    tagNumber: 'RFID-0001-A',
+    fullName: 'John Mwale',
+    pumpId: 2,
+    transactionId: 10002,
+  },
+  {
+    id: 'vtx-003',
+    rawId: 'raw-005',
+    companyId: 'company-001',
+    stationId: 'station-001',
+    shiftId: 'SH-001',
+    attendantId: 'att-1',
+    paymentType: 'debtors',
+    verifiedByUserId: 'demo-user-1',
+    verifiedAt: '2026-02-06T14:30:00Z',
+    amount: 2867.90,
+    currency: 'ZMW',
+    time: '2026-02-06T09:20:00Z',
+    tagNumber: 'RFID-0001-A',
+    fullName: 'John Mwale',
+    pumpId: 2,
+    transactionId: 10005,
+  },
+
+  // ── From SH-003 (Mary Zulu) ──
+  {
+    id: 'vtx-004',
+    rawId: 'raw-006',
+    companyId: 'company-001',
+    stationId: 'station-001',
+    shiftId: 'SH-003',
+    attendantId: 'att-3',
+    paymentType: 'cash',
+    verifiedByUserId: 'demo-user-1',
+    verifiedAt: '2026-02-06T07:00:00Z',
+    amount: 510.00,
+    currency: 'ZMW',
+    time: '2026-02-06T00:05:00Z',
+    tagNumber: 'RFID-0003-C',
+    fullName: 'Mary Zulu',
+    pumpId: 1,
+    transactionId: 10006,
+  },
+  {
+    id: 'vtx-005',
+    rawId: 'raw-007',
+    companyId: 'company-001',
+    stationId: 'station-001',
+    shiftId: 'SH-003',
+    attendantId: 'att-3',
+    paymentType: 'card',
+    verifiedByUserId: 'demo-user-1',
+    verifiedAt: '2026-02-06T07:00:00Z',
+    amount: 1020.00,
+    currency: 'ZMW',
+    time: '2026-02-06T02:45:00Z',
+    tagNumber: 'RFID-0003-C',
+    fullName: 'Mary Zulu',
+    pumpId: 3,
+    transactionId: 10007,
+  },
+];
+
+/* ─────────────────────────────────────────────────────────────
+   LEGACY unified FuelTransaction format for backward-compat UI.
+   These are derived from raw + verified transactions.
+   ───────────────────────────────────────────────────────────── */
 export const mockFuelTransactions: FuelTransaction[] = [
   {
     id: 'tx-001',
@@ -14,7 +311,13 @@ export const mockFuelTransactions: FuelTransaction[] = [
     attendantId: 'att-1',
     shiftId: 'SH-001',
     timestamp: '2026-02-06T07:15:00Z',
+    tagNumber: 'RFID-0001-A',
+    fullName: 'John Mwale',
     isVoided: false,
+    isVerified: true,
+    verifiedByUserId: 'demo-user-1',
+    verifiedAt: '2026-02-06T14:30:00Z',
+    rawId: 'raw-001',
   },
   {
     id: 'tx-002',
@@ -29,7 +332,13 @@ export const mockFuelTransactions: FuelTransaction[] = [
     attendantId: 'att-1',
     shiftId: 'SH-001',
     timestamp: '2026-02-06T07:42:00Z',
+    tagNumber: 'RFID-0001-A',
+    fullName: 'John Mwale',
     isVoided: false,
+    isVerified: true,
+    verifiedByUserId: 'demo-user-1',
+    verifiedAt: '2026-02-06T14:30:00Z',
+    rawId: 'raw-002',
   },
   {
     id: 'tx-003',
@@ -40,11 +349,14 @@ export const mockFuelTransactions: FuelTransaction[] = [
     volume: 30.0,
     unitPrice: 25.5,
     amount: 765.0,
-    paymentType: 'mobile',
+    // No paymentType – raw, awaiting verification
     attendantId: 'att-2',
     shiftId: 'SH-002',
     timestamp: '2026-02-06T08:10:00Z',
+    tagNumber: 'RFID-0002-B',
+    fullName: 'Peter Banda',
     isVoided: false,
+    isVerified: false,
   },
   {
     id: 'tx-004',
@@ -55,11 +367,14 @@ export const mockFuelTransactions: FuelTransaction[] = [
     volume: 55.8,
     unitPrice: 25.5,
     amount: 1422.9,
-    paymentType: 'cash',
+    // No paymentType — raw
     attendantId: 'att-2',
     shiftId: 'SH-002',
     timestamp: '2026-02-06T08:55:00Z',
+    tagNumber: 'RFID-0002-B',
+    fullName: 'Peter Banda',
     isVoided: false,
+    isVerified: false,
   },
   {
     id: 'tx-005',
@@ -70,11 +385,17 @@ export const mockFuelTransactions: FuelTransaction[] = [
     volume: 120.5,
     unitPrice: 23.8,
     amount: 2867.9,
-    paymentType: 'credit',
+    paymentType: 'debtors',
     attendantId: 'att-1',
     shiftId: 'SH-001',
     timestamp: '2026-02-06T09:20:00Z',
+    tagNumber: 'RFID-0001-A',
+    fullName: 'John Mwale',
     isVoided: false,
+    isVerified: true,
+    verifiedByUserId: 'demo-user-1',
+    verifiedAt: '2026-02-06T14:30:00Z',
+    rawId: 'raw-005',
   },
   {
     id: 'tx-006',
@@ -88,8 +409,14 @@ export const mockFuelTransactions: FuelTransaction[] = [
     paymentType: 'cash',
     attendantId: 'att-3',
     shiftId: 'SH-003',
-    timestamp: '2026-02-06T10:05:00Z',
+    timestamp: '2026-02-06T00:05:00Z',
+    tagNumber: 'RFID-0003-C',
+    fullName: 'Mary Zulu',
     isVoided: false,
+    isVerified: true,
+    verifiedByUserId: 'demo-user-1',
+    verifiedAt: '2026-02-06T07:00:00Z',
+    rawId: 'raw-006',
   },
   {
     id: 'tx-007',
@@ -103,8 +430,14 @@ export const mockFuelTransactions: FuelTransaction[] = [
     paymentType: 'card',
     attendantId: 'att-3',
     shiftId: 'SH-003',
-    timestamp: '2026-02-06T10:45:00Z',
+    timestamp: '2026-02-06T02:45:00Z',
+    tagNumber: 'RFID-0003-C',
+    fullName: 'Mary Zulu',
     isVoided: false,
+    isVerified: true,
+    verifiedByUserId: 'demo-user-1',
+    verifiedAt: '2026-02-06T07:00:00Z',
+    rawId: 'raw-007',
   },
   {
     id: 'tx-008',
@@ -115,13 +448,18 @@ export const mockFuelTransactions: FuelTransaction[] = [
     volume: 65.3,
     unitPrice: 23.8,
     amount: 1554.14,
-    paymentType: 'mobile',
+    // No paymentType — active shift
     attendantId: 'att-4',
     shiftId: 'SH-004',
     timestamp: '2026-02-06T11:30:00Z',
+    tagNumber: 'RFID-0004-D',
+    fullName: 'James Phiri',
     isVoided: false,
+    isVerified: false,
   },
 ];
+
+// ─── Helpers ─────────────────────────────────────────────────
 
 export function getMockTransactionsByPump(pumpId: string): FuelTransaction[] {
   return mockFuelTransactions.filter((tx) => tx.pumpId === pumpId);
@@ -129,4 +467,12 @@ export function getMockTransactionsByPump(pumpId: string): FuelTransaction[] {
 
 export function getMockTransactionsByShift(shiftId: string): FuelTransaction[] {
   return mockFuelTransactions.filter((tx) => tx.shiftId === shiftId);
+}
+
+export function getMockRawByShift(shiftId: string): RawFuelTransaction[] {
+  return mockRawTransactions.filter((tx) => tx.shiftId === shiftId);
+}
+
+export function getMockVerifiedByShift(shiftId: string): VerifiedFuelTransaction[] {
+  return mockVerifiedTransactions.filter((tx) => tx.shiftId === shiftId);
 }

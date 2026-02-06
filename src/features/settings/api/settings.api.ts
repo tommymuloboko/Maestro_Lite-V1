@@ -1,33 +1,54 @@
-// API functions - not implemented yet
+import { getApiService } from '@/lib/api/apiAdapter';
+import type { Attendant } from '@/types/attendants';
 
 export async function getStationConfig() {
-  throw new Error('API not implemented');
+  // Station config is loaded from local storage / env — not from backend
+  const { env } = await import('@/config/env');
+  return {
+    stationId: env.stationId,
+    stationName: env.appName,
+    pts2Url: env.pts2Url,
+    apiBaseUrl: env.apiBaseUrl,
+    currency: 'ZMW',
+  };
 }
 
 export async function updateStationConfig() {
-  throw new Error('API not implemented');
+  // Persisted locally — see StationConfigContext
+  throw new Error('Use StationConfigContext to update station config locally');
 }
 
 export async function getAttendants() {
-  throw new Error('API not implemented');
+  const svc = await getApiService();
+  return svc.getAttendants();
 }
 
-export async function createAttendant() {
-  throw new Error('API not implemented');
+export async function createAttendant(data: Partial<Attendant>) {
+  const svc = await getApiService();
+  return svc.createAttendant(data);
 }
 
-export async function updateAttendant() {
-  throw new Error('API not implemented');
+export async function updateAttendant(id: string, data: Partial<Attendant>) {
+  const svc = await getApiService();
+  return svc.updateAttendant(id, data);
 }
 
-export async function deleteAttendant() {
-  throw new Error('API not implemented');
+export async function deleteAttendant(id: string) {
+  const svc = await getApiService();
+  return svc.deleteAttendant(id);
+}
+
+export async function getAttendantTags(attendantId: string) {
+  const svc = await getApiService();
+  return svc.getAttendantTags(attendantId);
 }
 
 export async function getPaymentTypes() {
-  throw new Error('API not implemented');
+  // Payment types are static configuration
+  return ['cash', 'card', 'debtors', 'mobile', 'credit', 'other'] as const;
 }
 
 export async function updatePaymentTypes() {
-  throw new Error('API not implemented');
+  // Future: allow admin to configure which payment types are available
+  throw new Error('Not implemented — payment types are static');
 }

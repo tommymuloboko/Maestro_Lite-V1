@@ -5,7 +5,7 @@ import { notifications } from "@mantine/notifications";
 import LoginForm from "../components/LoginForm";
 import { useAuth } from "@/hooks/useAuth";
 import { paths } from "@/routes/paths";
-import { IconGasStation } from "@tabler/icons-react";
+import { IconGasStation, IconPower } from "@tabler/icons-react";
 
 export default function LoginScreen() {
   const navigate = useNavigate();
@@ -44,10 +44,22 @@ export default function LoginScreen() {
         display: "grid",
         placeItems: "center",
         padding: 24,
-        background:
-          "linear-gradient(180deg, #050d09 0%, #07130e 45%, #0a1f15 100%)",
+        position: "relative",
+        overflow: "hidden",
       }}
     >
+      {/* Full-page background image */}
+      <Box
+        style={{
+          position: "absolute",
+          inset: 0,
+          backgroundImage: "url('/Gas-dispensers.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          filter: "blur(6px) brightness(0.2)",
+          transform: "scale(1.05)",
+        }}
+      />
       <Paper
         radius="xl"
         shadow="xl"
@@ -56,6 +68,7 @@ export default function LoginScreen() {
           overflow: "hidden",
           border: "1px solid rgba(255,255,255,0.06)",
           background: "transparent",
+          position: "relative",
         }}
       >
         <Box
@@ -82,34 +95,37 @@ export default function LoginScreen() {
             <LoginForm onSubmit={handleLogin} loading={loading} />
           </Box>
 
-          {/* Right — brand panel with fuel icon */}
+          {/* Right — brand panel with gas station photo */}
           <Box
             visibleFrom="sm"
             style={{
-              padding: 48,
-              background:
-                "linear-gradient(160deg, #166534 0%, #14532d 50%, #0d3320 100%)",
+              position: "relative",
+              overflow: "hidden",
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
               textAlign: "center",
-              position: "relative",
-              overflow: "hidden",
             }}
           >
-            {/* Decorative glow behind icon */}
+            {/* Background image */}
             <Box
               style={{
                 position: "absolute",
-                width: 280,
-                height: 280,
-                borderRadius: "50%",
-                background: "radial-gradient(circle, rgba(249,115,22,0.15), transparent 70%)",
-                top: "50%",
-                left: "50%",
-                transform: "translate(-50%, -55%)",
-                pointerEvents: "none",
+                inset: 0,
+                backgroundImage: "url('/Gas-dispensers.jpg')",
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              }}
+            />
+
+            {/* Dark overlay for readability */}
+            <Box
+              style={{
+                position: "absolute",
+                inset: 0,
+                background:
+                  "linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.65) 100%)",
               }}
             />
 
@@ -119,8 +135,9 @@ export default function LoginScreen() {
                 width: 88,
                 height: 88,
                 borderRadius: 20,
-                background: "rgba(249, 115, 22, 0.15)",
-                border: "1px solid rgba(249, 115, 22, 0.25)",
+                background: "rgba(249, 115, 22, 0.2)",
+                border: "1px solid rgba(249, 115, 22, 0.35)",
+                backdropFilter: "blur(12px)",
                 display: "grid",
                 placeItems: "center",
                 marginBottom: 28,
@@ -136,16 +153,16 @@ export default function LoginScreen() {
               size="xl"
               c="white"
               lh={1.3}
-              style={{ letterSpacing: -0.3, position: "relative" }}
+              style={{ letterSpacing: -0.3, position: "relative", textShadow: "0 2px 8px rgba(0,0,0,0.5)" }}
             >
               Maestro Lite
             </Text>
             <Text
               fw={600}
               size="md"
-              c="rgba(255,255,255,0.75)"
+              c="rgba(255,255,255,0.85)"
               mt={4}
-              style={{ position: "relative" }}
+              style={{ position: "relative", textShadow: "0 1px 4px rgba(0,0,0,0.5)" }}
             >
               Fuel System
             </Text>
@@ -155,13 +172,14 @@ export default function LoginScreen() {
               px="lg"
               py={8}
               style={{
-                background: "rgba(255,255,255,0.06)",
+                background: "rgba(0,0,0,0.3)",
+                backdropFilter: "blur(8px)",
                 borderRadius: 8,
-                border: "1px solid rgba(255,255,255,0.08)",
+                border: "1px solid rgba(255,255,255,0.12)",
                 position: "relative",
               }}
             >
-              <Text size="xs" c="rgba(255,255,255,0.5)">
+              <Text size="xs" c="rgba(255,255,255,0.7)">
                 Backoffice v1.0
               </Text>
             </Box>
@@ -175,7 +193,7 @@ export default function LoginScreen() {
                 bottom: 24,
               }}
             >
-              <Text size="xs" c="rgba(255,255,255,0.4)" ta="center">
+              <Text size="xs" c="rgba(255,255,255,0.5)" ta="center" style={{ textShadow: "0 1px 3px rgba(0,0,0,0.6)" }}>
                 © {new Date().getFullYear()} Maestro Systems
               </Text>
             </Box>

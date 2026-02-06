@@ -1,8 +1,17 @@
 // Data Transfer Objects for API requests/responses
+// These mirror the Node.js backend at localhost:3000/api
 
 import type { User, AuthTokens } from '@/types/auth';
+import type { PaymentType } from '@/types/common';
+import type { RawFuelTransaction, VerifiedFuelTransaction } from '@/types/fuel';
+import type {
+  ShiftCloseDeclaration,
+  ShiftVerificationSummary,
+  ShiftStatus,
+} from '@/types/shifts';
 
-// Auth DTOs
+// ─── Auth ────────────────────────────────────────────────────
+
 export interface LoginRequestDto {
   username: string;
   password: string;
@@ -13,15 +22,22 @@ export interface LoginResponseDto {
   tokens: AuthTokens;
 }
 
-// Shift DTOs
+// ─── Shifts ──────────────────────────────────────────────────
+
 export interface StartShiftRequestDto {
   attendantId: string;
   pumpIds: string[];
+  tagNumber: string;
   openingReadings: {
     pumpId: string;
     nozzleId: string;
     reading: number;
   }[];
+}
+
+export interface StartShiftResponseDto {
+  shiftId: string;
+  message: string;
 }
 
 export interface EndShiftRequestDto {
@@ -30,15 +46,65 @@ export interface EndShiftRequestDto {
     nozzleId: string;
     reading: number;
   }[];
-  payments: {
-    paymentType: string;
-    declaredAmount: number;
-    countedAmount: number;
-  }[];
+  declaration: {
+    declaredCash: number;
+    declaredCard: number;
+    declaredDebtors: number;
+    declaredOther?: Record<string, number>;
+  };
   notes?: string;
 }
 
-// Dashboard DTOs
+export interface VerifyShiftRequestDto {
+  /** Map of rawTransactionId → assigned paymentType */
+  transactionAllocations: Record<string, PaymentType>;
+  /** Manager-counted totals */
+  countedCash: number;
+  countedCard: number;
+  countedDebtors: number;
+  notes?: string;
+}
+
+export interface VerifyShiftResponseDto {
+  verificationSummary: ShiftVerificationSummary;
+  verifiedCount: number;
+  message: string;
+}
+
+export interface ShiftListFiltersDto {
+  status?: ShiftStatus;
+  attendantId?: string;
+  startDate?: string;
+  endDate?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+// ─── Fuel Transactions ──────────────────────────────────────
+
+export interface RawTransactionsResponseDto {
+  data: RawFuelTransaction[];
+  total: number;
+}
+
+export interface VerifiedTransactionsResponseDto {
+  data: VerifiedFuelTransaction[];
+  total: number;
+}
+
+export interface FuelSalesFiltersDto {
+  startDate?: string;
+  endDate?: string;
+  pumpId?: number;
+  attendantId?: string;
+  shiftId?: string;
+  verifiedOnly?: boolean;
+  page?: number;
+  pageSize?: number;
+}
+
+// ─── Dashboard ───────────────────────────────────────────────
+
 export interface DashboardSummaryDto {
   todaySales: number;
   todayVolume: number;
@@ -52,7 +118,43 @@ export interface DashboardSummaryDto {
   };
 }
 
-// List response wrapper
+// ─── Pumps ───────────────────────────────────────────────────
+
+export interface PumpStatusDto {
+  pumpId: number;
+  status: string;
+  currentTransaction?: {
+    volume: number;
+    amount: number;
+    fuelType: string;
+    startTime: string;
+  };
+  lastUpdated: string;
+}
+
+// ─── Tanks ───────────────────────────────────────────────────
+
+export interface TankReadingDto {
+  tankId: string;
+  volume: number;
+  level: number;
+  temperature?: number;
+  waterLevel?: number;
+  timestamp: string;
+}
+
+// ─── Reports (all use verified data only) ────────────────────
+
+export interface ReportFiltersDto {
+  startDate: string;
+  endDate: string;
+  attendantId?: string;
+  pumpId?: string;
+  shiftId?: string;
+}
+
+// ─── List response wrapper ──────────────────────────────────
+
 export interface ListResponseDto<T> {
   data: T[];
   total: number;

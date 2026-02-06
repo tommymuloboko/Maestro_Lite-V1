@@ -78,11 +78,12 @@ export default function BackofficeHeader({
             size={36}
             onClick={onToggleNavbar}
             aria-label="Toggle navigation"
-            color="gray"
             styles={{
               root: {
-                border: "1px solid #e9ecef",
-                background: "white",
+                border: "1px solid rgba(255,255,255,0.08)",
+                background: "rgba(255,255,255,0.05)",
+                color: "rgba(255,255,255,0.7)",
+                "&:hover": { background: "rgba(255,255,255,0.1)" },
               },
             }}
           >
@@ -90,11 +91,10 @@ export default function BackofficeHeader({
           </ActionIcon>
         )}
 
-        {/* Station badge — green outlined */}
+        {/* Station badge */}
         <Badge
           size="lg"
           variant="light"
-          color="brand"
           radius="md"
           styles={{
             root: {
@@ -105,26 +105,29 @@ export default function BackofficeHeader({
               display: "flex",
               alignItems: "center",
               flexShrink: 0,
+              background: "rgba(249, 115, 22, 0.1)",
+              color: "#fb923c",
+              border: "1px solid rgba(249, 115, 22, 0.15)",
             },
           }}
         >
           {stationName}
         </Badge>
 
-        {/* Banner (optional — orange for attention) */}
+        {/* Banner (optional) */}
         {showBanner && (
           <Box
             px="md"
             py={10}
             visibleFrom="sm"
             style={{
-              background: "var(--fuel-orange-light)",
-              border: "1px solid rgba(249,115,22,0.2)",
+              background: "rgba(249, 115, 22, 0.08)",
+              border: "1px solid rgba(249, 115, 22, 0.15)",
               borderRadius: 10,
               minWidth: 0,
             }}
           >
-            <Text fw={800} c="var(--fuel-orange-deep)" truncate>
+            <Text fw={800} c="#fb923c" truncate>
               {bannerText}
             </Text>
           </Box>
@@ -133,11 +136,9 @@ export default function BackofficeHeader({
 
       {/* Right side */}
       <Group gap="sm" wrap="nowrap" align="center">
-        {/* Clock — green filled pill */}
+        {/* Clock */}
         <Badge
           size="lg"
-          variant="filled"
-          color="brand"
           radius="md"
           visibleFrom="xs"
           styles={{
@@ -148,6 +149,9 @@ export default function BackofficeHeader({
               paddingInline: 14,
               display: "flex",
               alignItems: "center",
+              background: "rgba(255,255,255,0.06)",
+              color: "rgba(255,255,255,0.8)",
+              border: "1px solid rgba(255,255,255,0.08)",
             },
           }}
         >
@@ -158,11 +162,11 @@ export default function BackofficeHeader({
           variant="subtle"
           radius="md"
           size={36}
-          color="gray"
           styles={{
             root: {
-              border: "1px solid #e9ecef",
-              background: "white",
+              border: "1px solid rgba(255,255,255,0.08)",
+              background: "rgba(255,255,255,0.05)",
+              color: "rgba(255,255,255,0.6)",
             },
           }}
         >
@@ -186,11 +190,11 @@ export default function BackofficeHeader({
                 borderRadius: 8,
                 display: "grid",
                 placeItems: "center",
-                border: "1px solid #e9ecef",
-                background: "white",
+                border: "1px solid rgba(255,255,255,0.08)",
+                background: "rgba(255,255,255,0.05)",
               }}
             >
-              <Avatar radius="md" color="brand" size={28}>
+              <Avatar radius="md" color="fuel" size={28}>
                 {avatarInitial}
               </Avatar>
             </UnstyledButton>

@@ -1,17 +1,26 @@
-// API functions - not implemented yet
+import { getApiService } from '@/lib/api/apiAdapter';
 
 export async function getTanks() {
-  throw new Error('API not implemented');
+  const svc = await getApiService();
+  return svc.getTanks();
 }
 
-export async function getTank() {
-  throw new Error('API not implemented');
+export async function getTank(id: string) {
+  const svc = await getApiService();
+  return svc.getTank(id);
 }
 
-export async function getTankReadings() {
-  throw new Error('API not implemented');
+export async function getTankReadings(tankId: string) {
+  const svc = await getApiService();
+  return svc.getTankReadings(tankId);
+}
+
+export async function getTankTrend(tankId: string) {
+  const svc = await getApiService();
+  return svc.getTankTrend(tankId);
 }
 
 export async function getTankAlerts() {
-  throw new Error('API not implemented');
+  const svc = await getApiService();
+  return svc.getTankAlerts();
 }

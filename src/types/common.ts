@@ -1,4 +1,4 @@
-export type PaymentType = 'cash' | 'card' | 'mobile' | 'credit' | 'other';
+export type PaymentType = 'cash' | 'card' | 'debtors' | 'mobile' | 'credit' | 'other';
 
 export interface PaginatedResponse<T> {
   data: T[];

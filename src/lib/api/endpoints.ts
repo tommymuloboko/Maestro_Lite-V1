@@ -1,3 +1,7 @@
+/**
+ * API Endpoints – mirrors Node.js backend at localhost:3000/api
+ * Swagger docs: http://localhost:3000/api-docs
+ */
 export const endpoints = {
   // Auth
   auth: {
@@ -15,13 +19,19 @@ export const endpoints = {
     end: (id: string) => `/shifts/${id}/end`,
     verify: (id: string) => `/shifts/${id}/verify`,
     transactions: (id: string) => `/shifts/${id}/transactions`,
+    rawTransactions: (id: string) => `/shifts/${id}/transactions/raw`,
+    verifiedTransactions: (id: string) => `/shifts/${id}/transactions/verified`,
+    declaration: (id: string) => `/shifts/${id}/declaration`,
+    verificationSummary: (id: string) => `/shifts/${id}/verification-summary`,
   },
 
-  // Fuel Sales
+  // Fuel Transactions
   fuelSales: {
     list: '/fuel-sales',
     get: (id: string) => `/fuel-sales/${id}`,
     summary: '/fuel-sales/summary',
+    raw: '/fuel-sales/raw',
+    verified: '/fuel-sales/verified',
   },
 
   // Pumps
@@ -40,7 +50,7 @@ export const endpoints = {
     alerts: '/tanks/alerts',
   },
 
-  // Reports
+  // Reports (all use VERIFIED transactions only)
   reports: {
     shiftSummary: '/reports/shift-summary',
     dailySales: '/reports/daily-sales',
@@ -52,6 +62,8 @@ export const endpoints = {
   settings: {
     station: '/settings/station',
     attendants: '/settings/attendants',
+    attendant: (id: string) => `/settings/attendants/${id}`,
+    attendantTags: '/settings/attendant-tags',
     paymentTypes: '/settings/payment-types',
     printers: '/settings/printers',
   },
@@ -62,4 +74,7 @@ export const endpoints = {
     alerts: '/dashboard/alerts',
     recentShifts: '/dashboard/recent-shifts',
   },
+
+  // Health check
+  health: '/health',
 } as const;

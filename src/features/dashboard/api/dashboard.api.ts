@@ -1,13 +1,16 @@
-// API functions - not implemented yet
+import { getApiService } from '@/lib/api/apiAdapter';
 
 export async function getDashboardSummary() {
-  throw new Error('API not implemented');
+  const svc = await getApiService();
+  return svc.getDashboardSummary();
 }
 
 export async function getDashboardAlerts() {
-  throw new Error('API not implemented');
+  const svc = await getApiService();
+  return svc.getDashboardAlerts();
 }
 
 export async function getRecentUnverifiedShifts() {
-  throw new Error('API not implemented');
+  const svc = await getApiService();
+  return svc.getRecentUnverifiedShifts();
 }

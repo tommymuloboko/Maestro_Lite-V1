@@ -8,7 +8,7 @@ import {
   TextInput,
   Title,
 } from "@mantine/core";
-import { IconLock, IconUser } from "@tabler/icons-react";
+import { IconLock, IconPower, IconUser } from "@tabler/icons-react";
 
 type LoginFormProps = {
   onSubmit?: (values: { username: string; password: string }) => void;
@@ -95,21 +95,15 @@ export default function LoginForm({ onSubmit, loading }: LoginFormProps) {
         <Group justify="center" mt={6}>
           <Button
             type="button"
-            variant="subtle"
-            color="gray"
+            variant="outline"
+            color="red"
             size="xs"
-            styles={{ root: { color: "rgba(255,255,255,0.65)" } }}
+            px={10}
+            radius="md"
+            styles={{ root: { borderColor: "rgba(255,100,100,0.35)", color: "rgba(255,255,255,0.6)" } }}
+            title="Shutdown"
           >
-            Backoffice
-          </Button>
-          <Button
-            type="button"
-            variant="subtle"
-            color="gray"
-            size="xs"
-            styles={{ root: { color: "rgba(255,255,255,0.65)" } }}
-          >
-            Shutdown
+            <IconPower size={22} stroke={1.8} />
           </Button>
         </Group>
       </Stack>

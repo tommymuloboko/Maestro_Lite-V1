@@ -1,4 +1,4 @@
-import type { Attendant, AttendantTag } from '@/types/attendants';
+import type { Attendant, AttendantRfidTag, AttendantTag } from '@/types/attendants';
 
 export const mockAttendantTags: AttendantTag[] = [
   { id: 'tag-1', name: 'Senior', color: 'blue' },
@@ -9,8 +9,13 @@ export const mockAttendantTags: AttendantTag[] = [
 export const mockAttendants: Attendant[] = [
   {
     id: 'att-1',
+    companyId: 'company-001',
+    stationId: 'station-001',
+    employeeId: 'emp-1',
+    attendantNo: 'A001',
     name: 'John Mwale',
     employeeCode: 'E001',
+    phone: '+260971234567',
     tag: 'Senior',
     isActive: true,
     createdAt: '2025-01-15T08:00:00Z',
@@ -18,8 +23,13 @@ export const mockAttendants: Attendant[] = [
   },
   {
     id: 'att-2',
+    companyId: 'company-001',
+    stationId: 'station-001',
+    employeeId: 'emp-2',
+    attendantNo: 'A002',
     name: 'Peter Banda',
     employeeCode: 'E002',
+    phone: '+260972345678',
     tag: 'Senior',
     isActive: true,
     createdAt: '2025-03-10T08:00:00Z',
@@ -27,8 +37,13 @@ export const mockAttendants: Attendant[] = [
   },
   {
     id: 'att-3',
+    companyId: 'company-001',
+    stationId: 'station-001',
+    employeeId: 'emp-3',
+    attendantNo: 'A003',
     name: 'Mary Zulu',
     employeeCode: 'E003',
+    phone: '+260973456789',
     tag: 'Night Shift',
     isActive: true,
     createdAt: '2025-06-20T08:00:00Z',
@@ -36,11 +51,52 @@ export const mockAttendants: Attendant[] = [
   },
   {
     id: 'att-4',
+    companyId: 'company-001',
+    stationId: 'station-001',
+    employeeId: 'emp-4',
+    attendantNo: 'A004',
     name: 'James Phiri',
     employeeCode: 'E004',
+    phone: '+260974567890',
     tag: 'Trainee',
     isActive: true,
     createdAt: '2025-11-01T08:00:00Z',
     updatedAt: '2026-02-01T10:00:00Z',
+  },
+];
+
+/** RFID tags tied to attendants */
+export const mockRfidTags: AttendantRfidTag[] = [
+  {
+    id: 'rfid-1',
+    attendantId: 'att-1',
+    stationId: 'station-001',
+    tagNumber: 'RFID-0001-A',
+    isActive: true,
+    issuedAt: '2025-01-15T08:00:00Z',
+  },
+  {
+    id: 'rfid-2',
+    attendantId: 'att-2',
+    stationId: 'station-001',
+    tagNumber: 'RFID-0002-B',
+    isActive: true,
+    issuedAt: '2025-03-10T08:00:00Z',
+  },
+  {
+    id: 'rfid-3',
+    attendantId: 'att-3',
+    stationId: 'station-001',
+    tagNumber: 'RFID-0003-C',
+    isActive: true,
+    issuedAt: '2025-06-20T08:00:00Z',
+  },
+  {
+    id: 'rfid-4',
+    attendantId: 'att-4',
+    stationId: 'station-001',
+    tagNumber: 'RFID-0004-D',
+    isActive: true,
+    issuedAt: '2025-11-01T08:00:00Z',
   },
 ];

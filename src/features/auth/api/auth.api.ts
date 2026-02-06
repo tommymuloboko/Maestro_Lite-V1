@@ -1,3 +1,6 @@
+import type { LoginCredentials } from '@/types/auth';
+import { getApiService } from '@/lib/api/apiAdapter';
+
 // Demo credentials for development
 export const DEMO_CREDENTIALS = {
   username: 'admin',
@@ -12,19 +15,24 @@ export const DEMO_USER = {
   stationId: 'station-001',
 };
 
-// API functions - not implemented yet
-export async function login() {
-  throw new Error('API not implemented');
+// ── API functions (delegate to adapter) ──────────────────────
+
+export async function login(credentials: LoginCredentials) {
+  const svc = await getApiService();
+  return svc.login(credentials);
 }
 
 export async function logout() {
-  throw new Error('API not implemented');
+  const svc = await getApiService();
+  return svc.logout();
 }
 
-export async function refreshToken() {
-  throw new Error('API not implemented');
+export async function refreshToken(token: string) {
+  const svc = await getApiService();
+  return svc.refreshToken(token);
 }
 
 export async function getCurrentUser() {
-  throw new Error('API not implemented');
+  const svc = await getApiService();
+  return svc.getCurrentUser();
 }

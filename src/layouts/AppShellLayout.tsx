@@ -5,8 +5,8 @@ import { Outlet } from "react-router-dom";
 import SideNav from "./SideNav";
 import BackofficeHeader from "./HeaderBar";
 
-const SIDEBAR_WIDTH = 250;
-const SIDEBAR_MARGIN = 10;
+const SIDEBAR_WIDTH = 240;
+const SIDEBAR_MARGIN = 0;
 
 export default function AppShellLayout() {
   const isMobile = useMediaQuery("(max-width: 768px)");
@@ -51,8 +51,9 @@ export default function AppShellLayout() {
         <Box
           style={{
             height: "100%",
-            borderRadius: isMobile ? 0 : 12,
+            borderRadius: 0,
             overflow: "hidden",
+            borderRight: "1px solid rgba(255,255,255,0.04)",
           }}
         >
           <SideNav />

@@ -7,7 +7,7 @@ import {
   IconReportAnalytics,
   IconSettings,
   IconLogout,
-  IconFlame,
+  IconDroplet,
 } from "@tabler/icons-react";
 import { useAuth } from "@/hooks/useAuth";
 import { paths } from "@/routes/paths";
@@ -37,7 +37,7 @@ function SideItem({ item, active }: { item: Item; active: boolean }) {
         marginBottom: 2,
         color: active ? "var(--sidebar-text-active)" : "var(--sidebar-text)",
         background: active ? "var(--sidebar-active-bg)" : "transparent",
-        border: active ? "1px solid var(--sidebar-active-border)" : "1px solid transparent",
+        borderLeft: active ? "3px solid var(--fuel-orange)" : "3px solid transparent",
         transition: "all 150ms ease",
         display: "flex",
         alignItems: "center",
@@ -83,30 +83,37 @@ export default function SideNav() {
             style={{
               width: 36,
               height: 36,
-              borderRadius: 8,
-              background: "var(--fuel-orange)",
+              borderRadius: 10,
+              background: "rgba(249, 115, 22, 0.15)",
+              border: "1px solid rgba(249, 115, 22, 0.25)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              color: "white",
             }}
           >
-            <IconFlame size={20} stroke={1.5} />
+            <IconDroplet size={20} stroke={1.5} color="#f97316" />
           </Box>
           <div>
             <Text c="white" fw={700} size="sm" lh={1.2}>
               MAESTRO
             </Text>
             <Text size="xs" c="var(--sidebar-text-dim)" lh={1.2}>
-              Backoffice
+              Fuel System
             </Text>
           </div>
         </Group>
       </Box>
 
+      {/* Section label */}
+      <Box px="md" pt="sm" pb={4}>
+        <Text size="xs" fw={600} c="var(--sidebar-text-dim)" tt="uppercase" lh={1} style={{ letterSpacing: 0.8 }}>
+          Menu
+        </Text>
+      </Box>
+
       {/* Navigation */}
       <ScrollArea style={{ flex: 1 }} px="xs" scrollbarSize={4}>
-        <Box py="xs">
+        <Box py={4}>
           {items.map((item) => (
             <SideItem
               key={item.to}
@@ -117,7 +124,7 @@ export default function SideNav() {
         </Box>
       </ScrollArea>
 
-      {/* Logout — orange CTA (fuel action) */}
+      {/* Logout — subtle ghost button */}
       <Box p="sm" style={{ borderTop: "1px solid var(--sidebar-border)" }}>
         <UnstyledButton
           onClick={handleLogout}
@@ -125,17 +132,18 @@ export default function SideNav() {
           style={{
             width: "100%",
             borderRadius: 8,
-            padding: "12px 16px",
-            background: "var(--fuel-orange)",
-            color: "white",
-            transition: "all 120ms ease",
+            padding: "10px 14px",
+            color: "rgba(255,255,255,0.5)",
+            background: "transparent",
+            border: "1px solid rgba(255,255,255,0.06)",
+            transition: "all 150ms ease",
             display: "flex",
             alignItems: "center",
           }}
         >
           <Group gap={12} wrap="nowrap">
-            <IconLogout size={20} stroke={1.5} />
-            <Text size="sm" fw={500}>
+            <IconLogout size={18} stroke={1.5} />
+            <Text size="sm" fw={400}>
               Logout
             </Text>
           </Group>
