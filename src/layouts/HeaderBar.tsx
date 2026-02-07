@@ -80,10 +80,10 @@ export default function BackofficeHeader({
             aria-label="Toggle navigation"
             styles={{
               root: {
-                border: "1px solid rgba(255,255,255,0.08)",
-                background: "rgba(255,255,255,0.05)",
-                color: "rgba(255,255,255,0.7)",
-                "&:hover": { background: "rgba(255,255,255,0.1)" },
+                border: "1px solid rgba(148,163,184,0.45)",
+                background: "rgba(255,255,255,0.78)",
+                color: "rgba(15,23,42,0.84)",
+                "&:hover": { background: "rgba(255,255,255,0.94)" },
               },
             }}
           >
@@ -105,9 +105,9 @@ export default function BackofficeHeader({
               display: "flex",
               alignItems: "center",
               flexShrink: 0,
-              background: "rgba(249, 115, 22, 0.1)",
-              color: "#fb923c",
-              border: "1px solid rgba(249, 115, 22, 0.15)",
+              background: "rgba(249, 115, 22, 0.13)",
+              color: "#c2410c",
+              border: "1px solid rgba(249, 115, 22, 0.24)",
             },
           }}
         >
@@ -121,13 +121,13 @@ export default function BackofficeHeader({
             py={10}
             visibleFrom="sm"
             style={{
-              background: "rgba(249, 115, 22, 0.08)",
-              border: "1px solid rgba(249, 115, 22, 0.15)",
+              background: "rgba(249, 115, 22, 0.1)",
+              border: "1px solid rgba(249, 115, 22, 0.22)",
               borderRadius: 10,
               minWidth: 0,
             }}
           >
-            <Text fw={800} c="#fb923c" truncate>
+            <Text fw={800} c="#c2410c" truncate>
               {bannerText}
             </Text>
           </Box>
@@ -149,9 +149,9 @@ export default function BackofficeHeader({
               paddingInline: 14,
               display: "flex",
               alignItems: "center",
-              background: "rgba(255,255,255,0.06)",
-              color: "rgba(255,255,255,0.8)",
-              border: "1px solid rgba(255,255,255,0.08)",
+              background: "rgba(255,255,255,0.72)",
+              color: "rgba(15,23,42,0.84)",
+              border: "1px solid rgba(148,163,184,0.4)",
             },
           }}
         >
@@ -164,9 +164,10 @@ export default function BackofficeHeader({
           size={36}
           styles={{
             root: {
-              border: "1px solid rgba(255,255,255,0.08)",
-              background: "rgba(255,255,255,0.05)",
-              color: "rgba(255,255,255,0.6)",
+              border: "1px solid rgba(148,163,184,0.45)",
+              background: "rgba(255,255,255,0.78)",
+              color: "rgba(15,23,42,0.78)",
+              "&:hover": { background: "rgba(255,255,255,0.94)" },
             },
           }}
         >
@@ -190,8 +191,8 @@ export default function BackofficeHeader({
                 borderRadius: 8,
                 display: "grid",
                 placeItems: "center",
-                border: "1px solid rgba(255,255,255,0.08)",
-                background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(148,163,184,0.45)",
+                background: "rgba(255,255,255,0.78)",
               }}
             >
               <Avatar radius="md" color="fuel" size={28}>

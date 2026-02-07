@@ -13,10 +13,10 @@
   --sidebar-border: rgba(255, 255, 255, 0.06);
 
   /* ─── Header — matching dark ─── */
-  --header-bg: #0f172a;
-  --header-border: rgba(255, 255, 255, 0.06);
-  --header-text: rgba(255, 255, 255, 0.85);
-  --header-text-dim: rgba(255, 255, 255, 0.5);
+  --header-bg: transparent;
+  --header-border: transparent;
+  --header-text: rgba(15, 23, 42, 0.9);
+  --header-text-dim: rgba(15, 23, 42, 0.62);
 
   /* ─── Fuel Orange — action & attention ─── */
   --fuel-orange: #f97316;
