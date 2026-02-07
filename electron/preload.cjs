@@ -29,4 +29,22 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('window:maximized-changed', handler);
     return () => ipcRenderer.removeListener('window:maximized-changed', handler);
   },
+
+  // ─── Backend management ───
+  getBackendStatus: () => ipcRenderer.invoke('backend:getStatus'),
+  getBackendStatusDetails: () => ipcRenderer.invoke('backend:getStatusDetails'),
+  restartBackend: () => ipcRenderer.invoke('backend:restart'),
+
+  onBackendStatusChange: (callback) => {
+    const handler = (_event, status) => callback(status);
+    ipcRenderer.on('backend:status-changed', handler);
+    return () => ipcRenderer.removeListener('backend:status-changed', handler);
+  },
+
+  onBackendLog: (callback) => {
+    const handler = (_event, logEntry) => callback(logEntry);
+    ipcRenderer.on('backend:log', handler);
+    return () => ipcRenderer.removeListener('backend:log', handler);
+  },
 });
+
