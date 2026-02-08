@@ -9,15 +9,54 @@ interface SalesMetricCardProps {
   helper?: string;
 }
 
+const toneStyles: Record<SalesMetricCardProps['color'], { background: string; border: string; iconBg: string; iconColor: string }> = {
+  teal: {
+    background: 'linear-gradient(135deg, #f0fdfa 0%, #e6fffb 100%)',
+    border: '#b6efe4',
+    iconBg: '#14b8a6',
+    iconColor: '#ffffff',
+  },
+  blue: {
+    background: 'linear-gradient(135deg, #eff6ff 0%, #eaf3ff 100%)',
+    border: '#bfdcff',
+    iconBg: '#3b82f6',
+    iconColor: '#ffffff',
+  },
+  orange: {
+    background: 'linear-gradient(135deg, #fff7ed 0%, #fff4e8 100%)',
+    border: '#ffd5b0',
+    iconBg: '#f97316',
+    iconColor: '#ffffff',
+  },
+  red: {
+    background: 'linear-gradient(135deg, #fef2f2 0%, #fff1f1 100%)',
+    border: '#fecaca',
+    iconBg: '#ef4444',
+    iconColor: '#ffffff',
+  },
+};
+
 export function SalesMetricCard({ label, value, icon: Icon, color, helper }: SalesMetricCardProps) {
+  const tone = toneStyles[color];
+
   return (
-    <Paper p="md" radius="md" withBorder bg="white">
+    <Paper
+      p="md"
+      radius="md"
+      withBorder
+      style={{
+        background: tone.background,
+        borderColor: tone.border,
+        minHeight: 122,
+        height: '100%',
+      }}
+    >
       <Group justify="space-between" align="flex-start" wrap="nowrap" mb={6}>
         <div>
-          <Text size="xs" c="dimmed" fw={600} tt="uppercase" style={{ letterSpacing: 0.4 }}>
+          <Text size="xs" c="dimmed" fw={700} tt="uppercase" style={{ letterSpacing: 0.45 }}>
             {label}
           </Text>
-          <Text size="xl" fw={700} lh={1.2}>
+          <Text size="1.9rem" fw={800} lh={1.15}>
             {value}
           </Text>
           {helper ? (
@@ -26,8 +65,13 @@ export function SalesMetricCard({ label, value, icon: Icon, color, helper }: Sal
             </Text>
           ) : null}
         </div>
-        <ThemeIcon variant="light" color={color} size={40} radius="md">
-          <Icon size={20} stroke={1.8} />
+        <ThemeIcon
+          size={44}
+          radius="md"
+          variant="filled"
+          style={{ background: tone.iconBg, color: tone.iconColor }}
+        >
+          <Icon size={22} stroke={2} />
         </ThemeIcon>
       </Group>
     </Paper>

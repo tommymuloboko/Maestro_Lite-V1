@@ -326,7 +326,7 @@ export default function DashboardScreen() {
       </Group>
 
       <Grid gutter="md">
-        <Grid.Col span={{ base: 12, sm: 6, xl: 3 }}>
+        <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
           <SalesMetricCard
             label="Fuel Sales"
             value={formatMoney(totalFuelSales)}
@@ -335,7 +335,7 @@ export default function DashboardScreen() {
             helper="Selected period total"
           />
         </Grid.Col>
-        <Grid.Col span={{ base: 12, sm: 6, xl: 3 }}>
+        <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
           <SalesMetricCard
             label="Active Pumps"
             value={`${activePumpMeta.active} / ${activePumpMeta.total}`}
@@ -343,7 +343,7 @@ export default function DashboardScreen() {
             color="blue"
           />
         </Grid.Col>
-        <Grid.Col span={{ base: 12, sm: 6, xl: 3 }}>
+        <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
           <SalesMetricCard
             label="Unverified Txn"
             value={String(unverifiedTxnCount)}
@@ -351,7 +351,7 @@ export default function DashboardScreen() {
             color="orange"
           />
         </Grid.Col>
-        <Grid.Col span={{ base: 12, sm: 6, xl: 3 }}>
+        <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
           <SalesMetricCard
             label="Tank Alerts"
             value={String(tankAlertCount)}
