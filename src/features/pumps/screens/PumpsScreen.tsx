@@ -1,15 +1,31 @@
 import { useState, useEffect } from 'react';
-import { SimpleGrid, Loader, Center } from '@mantine/core';
+import { Badge, Center, Group, Loader, SimpleGrid, Text } from '@mantine/core';
 import { Screen } from '@/layouts/Screen';
 import { PumpCard } from '../components/PumpCard';
 import type { Pump } from '@/types/pumps';
 import { getApiService } from '@/lib/api/apiAdapter';
+import { env } from '@/config/env';
+import { createInitialSimPumps, tickSimPumps } from '@/features/monitoring/simulators/pumpSimulator';
 
 export function PumpsScreen() {
-  const [pumps, setPumps] = useState<Pump[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [pumps, setPumps] = useState<Pump[]>(() =>
+    env.useMonitoringSimulator ? createInitialSimPumps() : []
+  );
+  const [isLoading, setIsLoading] = useState(!env.useMonitoringSimulator);
 
   useEffect(() => {
+    if (env.useMonitoringSimulator) {
+      const timer = window.setInterval(() => {
+        setPumps((prev) => tickSimPumps(prev));
+      }, 1000);
+
+      setIsLoading(false);
+
+      return () => {
+        window.clearInterval(timer);
+      };
+    }
+
     async function loadPumps() {
       try {
         const api = await getApiService();
@@ -38,6 +54,15 @@ export function PumpsScreen() {
 
   return (
     <Screen title="Pumps">
+      {env.useMonitoringSimulator && (
+        <Group mb="sm" gap="xs">
+          <Badge variant="light" color="blue">SIMULATOR</Badge>
+          <Text size="xs" c="dimmed">
+            Live backend bypassed for UI development
+          </Text>
+        </Group>
+      )}
+
       <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="md">
         {pumps.map((pump) => (
           <PumpCard key={pump.id} pump={pump} />

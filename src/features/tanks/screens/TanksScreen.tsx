@@ -3,12 +3,28 @@ import { SimpleGrid, Group, Text, Badge, Stack, Loader, Center } from '@mantine/
 import { TankCard } from '../components/TankCard';
 import type { Tank } from '@/types/tanks';
 import { getApiService } from '@/lib/api/apiAdapter';
+import { env } from '@/config/env';
+import { createInitialSimTanks, tickSimTanks } from '@/features/monitoring/simulators/tankSimulator';
 
 export function TanksScreen() {
-  const [tanks, setTanks] = useState<Tank[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [tanks, setTanks] = useState<Tank[]>(() =>
+    env.useMonitoringSimulator ? createInitialSimTanks() : []
+  );
+  const [isLoading, setIsLoading] = useState(!env.useMonitoringSimulator);
 
   useEffect(() => {
+    if (env.useMonitoringSimulator) {
+      const timer = window.setInterval(() => {
+        setTanks((prev) => tickSimTanks(prev));
+      }, 1500);
+
+      setIsLoading(false);
+
+      return () => {
+        window.clearInterval(timer);
+      };
+    }
+
     async function loadTanks() {
       try {
         const api = await getApiService();
@@ -34,7 +50,7 @@ export function TanksScreen() {
   }
 
   const totalAlarms = tanks.reduce((sum, t) => sum + t.alarms.length, 0);
-  const isSimulator = tanks.some((t) => t.atgSource === 'SIMULATOR');
+  const isSimulator = env.useMonitoringSimulator || tanks.some((t) => t.atgSource === 'SIMULATOR');
 
   return (
     <Stack gap="md">

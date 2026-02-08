@@ -4,6 +4,7 @@ import { IconDroplet, IconTemperature, IconTruckDelivery } from '@tabler/icons-r
 import type { Tank, TankStatus, TankTrendPoint } from '@/types/tanks';
 import { TankTrendChart } from './TankTrendChart';
 import { getApiService } from '@/lib/api/apiAdapter';
+import { buildSimTankTrend } from '@/features/monitoring/simulators/tankSimulator';
 
 interface TankCardProps {
   tank: Tank;
@@ -46,8 +47,267 @@ function formatDate(iso: string): string {
   });
 }
 
-function getGaugeColor(fuelTypeId: string): string {
+function getFuelColor(fuelTypeId: string): string {
+  // You can swap petrol to your “fuel vibe” orange later if you want:
+  // petrol -> '#f97316'
   return fuelTypeId === 'diesel' ? '#3b82f6' : '#22c55e';
+}
+
+function getStatusDotColor(status: TankStatus): string {
+  switch (status) {
+    case 'normal': return '#22c55e';
+    case 'low': return '#f59e0b';
+    case 'critical': return '#ef4444';
+    case 'overfill': return '#8b5cf6';
+    case 'offline': return '#9ca3af';
+    case 'sensor_fault': return '#f59e0b';
+    case 'water_detected': return '#f59e0b';
+    default: return '#9ca3af';
+  }
+}
+
+function clamp(n: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, n));
+}
+
+/**
+ * Horizontal underground ATG tank visual:
+ * - metal shell + inner cavity
+ * - product fill + water layer
+ * - ATG probe + riser
+ * - offline hatch overlay
+ */
+function AtgTankVisual({
+  fillPercent,
+  waterMm,
+  productMm,
+  capacityLiters,
+  fuelColor,
+  isOffline,
+  status,
+}: {
+  fillPercent: number;
+  waterMm: number;
+  productMm: number;
+  capacityLiters: number;
+  fuelColor: string;
+  isOffline: boolean;
+  status: TankStatus;
+}) {
+  const pct = clamp(fillPercent, 0, 100);
+  const hasWater = waterMm > 0;
+
+  // Visual-only mapping:
+  // Water band height should be subtle; we cap it so it never looks crazy.
+  // If you later add tankHeightMm, you can do exact scaling.
+  const waterBandPct = hasWater ? clamp((waterMm / Math.max(productMm + waterMm, 1)) * pct, 1, 8) : 0;
+
+  const statusDot = getStatusDotColor(status);
+
+  return (
+    <Box style={{ width: '100%', maxWidth: 280, flexShrink: 0 }}>
+      {/* Small hardware row (riser + probe head + status dot) */}
+      <Group gap={10} align="center" mb={10}>
+        <Box
+          style={{
+            width: 10,
+            height: 22,
+            borderRadius: 4,
+            background: 'linear-gradient(180deg, #f3f4f6, #cbd5e1)',
+            border: '1px solid #d1d5db',
+          }}
+        />
+        <Box
+          style={{
+            width: 44,
+            height: 22,
+            borderRadius: 6,
+            background: 'linear-gradient(180deg, #ffffff, #e5e7eb)',
+            border: '1px solid #d1d5db',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
+          }}
+        />
+        <Group gap={6} align="center">
+          <Box
+            style={{
+              width: 10,
+              height: 10,
+              borderRadius: 999,
+              background: statusDot,
+              boxShadow: `0 0 0 3px rgba(0,0,0,0.04)`,
+            }}
+          />
+          <Text size="xs" c="dimmed" fw={600}>
+            ATG
+          </Text>
+        </Group>
+      </Group>
+
+      {/* Tank body */}
+      <Box
+        style={{
+          position: 'relative',
+          width: '100%',
+          height: 120,
+          borderRadius: 999,
+          background: 'linear-gradient(180deg, #f8fafc 0%, #e5e7eb 45%, #f8fafc 100%)',
+          border: '1px solid #d1d5db',
+          boxShadow:
+            'inset 0 10px 18px rgba(255,255,255,0.9), inset 0 -10px 18px rgba(0,0,0,0.06), 0 6px 18px rgba(0,0,0,0.06)',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Inner cavity */}
+        <Box
+          style={{
+            position: 'absolute',
+            inset: 10,
+            borderRadius: 999,
+            background: 'linear-gradient(180deg, #ffffff, #f3f4f6)',
+            border: '1px solid rgba(0,0,0,0.06)',
+            overflow: 'hidden',
+          }}
+        >
+          {/* Ullage (empty space) is just the cavity background */}
+
+          {/* Product fill (left-to-right) */}
+          <Box
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: `${pct}%`,
+              background: `linear-gradient(180deg, ${fuelColor} 0%, rgba(0,0,0,0.08) 120%)`,
+              transition: 'width 350ms ease',
+            }}
+          >
+            {/* Meniscus highlight */}
+            <Box
+              style={{
+                position: 'absolute',
+                right: 0,
+                top: 0,
+                bottom: 0,
+                width: 2,
+                background: 'rgba(255,255,255,0.55)',
+                opacity: 0.55,
+              }}
+            />
+          </Box>
+
+          {/* Water layer (thin band at bottom, only within filled region) */}
+          {hasWater && waterBandPct > 0 && (
+            <Box
+              style={{
+                position: 'absolute',
+                left: 0,
+                width: `${pct}%`,
+                bottom: 0,
+                height: `${waterBandPct}%`,
+                background: 'rgba(59, 130, 246, 0.55)',
+              }}
+            />
+          )}
+
+          {/* Probe (from top down) */}
+          <Box
+            style={{
+              position: 'absolute',
+              left: '58%',
+              top: -6,
+              bottom: -6,
+              width: 2,
+              background: 'rgba(15, 23, 42, 0.35)',
+            }}
+          />
+          {/* Probe tip marker */}
+          <Box
+            style={{
+              position: 'absolute',
+              left: '58%',
+              top: '70%',
+              transform: 'translateX(-50%)',
+              width: 8,
+              height: 8,
+              borderRadius: 999,
+              background: 'rgba(15, 23, 42, 0.35)',
+            }}
+          />
+
+          {/* Tick marks (mm scale vibe) */}
+          {Array.from({ length: 9 }).map((_, i) => (
+            <Box
+              key={i}
+              style={{
+                position: 'absolute',
+                right: 10,
+                top: 10 + i * 10,
+                width: i % 2 === 0 ? 10 : 6,
+                height: 1,
+                background: 'rgba(15, 23, 42, 0.12)',
+              }}
+            />
+          ))}
+
+          {/* Offline hatch overlay */}
+          {isOffline && (
+            <Box
+              style={{
+                position: 'absolute',
+                inset: 0,
+                background:
+                  'repeating-linear-gradient(45deg, rgba(148,163,184,0.18), rgba(148,163,184,0.18) 8px, rgba(148,163,184,0.28) 8px, rgba(148,163,184,0.28) 16px)',
+              }}
+            />
+          )}
+        </Box>
+
+        {/* Percent bubble (like a gauge label) */}
+        <Box
+          style={{
+            position: 'absolute',
+            right: 14,
+            top: 14,
+            padding: '6px 10px',
+            borderRadius: 999,
+            background: 'white',
+            border: `1px solid rgba(0,0,0,0.12)`,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+          }}
+        >
+          <Text fw={800} size="xs" style={{ letterSpacing: 0.2 }}>
+            {pct}%
+          </Text>
+        </Box>
+
+        {/* Water callout */}
+        {hasWater && (
+          <Box
+            style={{
+              position: 'absolute',
+              left: 14,
+              bottom: 12,
+              padding: '4px 8px',
+              borderRadius: 999,
+              background: 'rgba(255,255,255,0.9)',
+              border: '1px solid rgba(0,0,0,0.10)',
+            }}
+          >
+            <Text size="xs" fw={700} c="orange">
+              WATER
+            </Text>
+          </Box>
+        )}
+      </Box>
+
+      {/* Small caption row */}
+      <Group justify="space-between" mt={10}>
+        <Text size="xs" c="dimmed">Product</Text>
+        <Text size="xs" c="dimmed">{capacityLiters > 0 ? `${pct}% full` : '—'}</Text>
+      </Group>
+    </Box>
+  );
 }
 
 export function TankCard({ tank }: TankCardProps) {
@@ -55,28 +315,31 @@ export function TankCard({ tank }: TankCardProps) {
   const [isLoadingTrend, setIsLoadingTrend] = useState(true);
 
   useEffect(() => {
+    if (tank.atgSource === 'SIMULATOR') {
+      setTrendData(buildSimTankTrend(tank));
+      setIsLoadingTrend(false);
+      return;
+    }
+
     async function loadTrend() {
       try {
         const api = await getApiService();
         const data = await api.getTankTrend(tank.id);
-        setTrendData(data);
+        setTrendData(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error('Failed to load tank trend:', error);
+        setTrendData([]);
       } finally {
         setIsLoadingTrend(false);
       }
     }
     loadTrend();
-  }, [tank.id]);
+  }, [tank]);
 
-  const gaugeColor = getGaugeColor(tank.fuelTypeId);
-  const fillPercent = Math.min(100, Math.max(0, tank.currentLevel));
+  const fuelColor = getFuelColor(tank.fuelTypeId);
+  const fillPercent = clamp(tank.currentLevel, 0, 100);
   const waterWarning = tank.waterHeight > 0;
-
-  // Water height as a percentage of the gauge
-  const waterPercent = tank.capacity > 0
-    ? Math.min(fillPercent, (tank.waterHeight / (tank.capacity * 0.01)) * 0.5)
-    : 0;
+  const isOffline = tank.status === 'offline';
 
   const latestDelivery = tank.deliveries.length > 0
     ? tank.deliveries[tank.deliveries.length - 1]
@@ -95,6 +358,7 @@ export function TankCard({ tank }: TankCardProps) {
             ATG: {tank.atgSource}
           </Text>
         </div>
+
         <Badge
           color={statusColors[tank.status]}
           variant="filled"
@@ -105,76 +369,21 @@ export function TankCard({ tank }: TankCardProps) {
         </Badge>
       </Group>
 
-      {/* Main content: Gauge + Stats */}
-      <Group align="flex-start" gap="lg" wrap="nowrap">
-        {/* Tank gauge visual */}
-        <Box style={{ flexShrink: 0 }}>
-          <Box
-            style={{
-              position: 'relative',
-              width: 80,
-              height: 200,
-              borderRadius: 12,
-              border: '2px solid #e0e0e0',
-              overflow: 'hidden',
-              background: '#f5f5f5',
-            }}
-          >
-            {/* Fuel fill */}
-            <Box
-              style={{
-                position: 'absolute',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                height: `${fillPercent}%`,
-                background: gaugeColor,
-                borderRadius: '0 0 10px 10px',
-                transition: 'height 300ms ease',
-              }}
-            />
-            {/* Water layer (blue band at bottom) */}
-            {waterWarning && waterPercent > 0 && (
-              <Box
-                style={{
-                  position: 'absolute',
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  height: `${waterPercent}%`,
-                  background: 'rgba(59, 130, 246, 0.6)',
-                  borderRadius: '0 0 10px 10px',
-                  zIndex: 1,
-                }}
-              />
-            )}
-            {/* Percentage badge */}
-            <Box
-              style={{
-                position: 'absolute',
-                top: 8,
-                left: '50%',
-                transform: 'translateX(-50%)',
-                width: 44,
-                height: 44,
-                borderRadius: '50%',
-                background: 'white',
-                border: `2px solid ${gaugeColor}`,
-                display: 'grid',
-                placeItems: 'center',
-                zIndex: 2,
-              }}
-            >
-              <Text fw={700} size="xs" c={gaugeColor}>
-                {fillPercent}%
-              </Text>
-            </Box>
-          </Box>
-        </Box>
+      {/* Main content: ATG Tank visual + Stats */}
+      <Group align="flex-start" gap="lg" wrap="wrap">
+        {/* Realistic ATG tank */}
+        <AtgTankVisual
+          fillPercent={fillPercent}
+          waterMm={tank.waterHeight}
+          productMm={tank.productHeight}
+          capacityLiters={tank.capacity}
+          fuelColor={fuelColor}
+          isOffline={isOffline}
+          status={tank.status}
+        />
 
         {/* Stats side */}
-        <Box style={{ flex: 1, minWidth: 0 }}>
-          {/* Volume + Ullage boxes */}
+        <Box style={{ flex: 1, minWidth: 220 }}>
           <SimpleGrid cols={2} spacing="xs" mb="sm">
             <Paper p="xs" withBorder radius="sm">
               <Text size="xs" c="dimmed">Volume</Text>
@@ -188,7 +397,6 @@ export function TankCard({ tank }: TankCardProps) {
             </Paper>
           </SimpleGrid>
 
-          {/* Capacity + Temperature */}
           <Group gap="lg" mb="sm">
             <div>
               <Group gap={4} align="center">
@@ -206,7 +414,6 @@ export function TankCard({ tank }: TankCardProps) {
             </div>
           </Group>
 
-          {/* Product Height + Water Height */}
           <Group gap="lg">
             <div>
               <Text size="xs" c="dimmed">Product Height</Text>
@@ -256,7 +463,6 @@ export function TankCard({ tank }: TankCardProps) {
         </Paper>
       )}
 
-      {/* Last updated */}
       <Text size="xs" c="dimmed" ta="right" mt="md">
         Last updated: {formatDate(tank.lastUpdated)}
       </Text>

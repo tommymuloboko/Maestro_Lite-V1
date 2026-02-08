@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Loader, Center } from '@mantine/core';
-import { TankTrendChart } from '@/components/charts/TankTrendChart';
+import { Loader, Center, Text, Box } from '@mantine/core';
 import type { Tank, TankTrendPoint } from '@/types/tanks';
 import { getApiService } from '@/lib/api/apiAdapter';
+import { TankTrendChart } from './TankTrendChart';
 
 interface TankTrendPanelProps {
   tankId: string;
@@ -14,6 +14,8 @@ export function TankTrendPanel({ tankId }: TankTrendPanelProps) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+
     async function loadData() {
       try {
         const api = await getApiService();
@@ -21,15 +23,23 @@ export function TankTrendPanel({ tankId }: TankTrendPanelProps) {
           api.getTank(tankId),
           api.getTankTrend(tankId),
         ]);
-        setTank(tankData);
-        setReadings(trendData);
+
+        if (!isMounted) return;
+        setTank(tankData ?? null);
+        setReadings(Array.isArray(trendData) ? trendData : []);
       } catch (error) {
         console.error('Failed to load tank trend:', error);
+        if (!isMounted) return;
+        setReadings([]);
       } finally {
-        setIsLoading(false);
+        if (isMounted) setIsLoading(false);
       }
     }
+
     loadData();
+    return () => {
+      isMounted = false;
+    };
   }, [tankId]);
 
   if (isLoading) {
@@ -40,25 +50,31 @@ export function TankTrendPanel({ tankId }: TankTrendPanelProps) {
     );
   }
 
-  const tankName = tank?.name ?? 'Tank';
-  const capacity = tank?.capacity ?? 20000;
+  if (!tank) {
+    return (
+      <Text size="sm" c="dimmed" ta="center" py="md">
+        Tank not found
+      </Text>
+    );
+  }
 
-  // Convert TankTrendPoint[] to TankReading[] for the shared chart component
-  const chartReadings = readings.map((p, i) => ({
-    id: `${tankId}-${i}`,
-    tankId,
-    volume: p.volume,
-    level: tank ? (p.volume / tank.capacity) * 100 : 0,
-    temperature: p.temperature,
-    timestamp: p.timestamp,
-  }));
+  if (readings.length === 0) {
+    return (
+      <Text size="sm" c="dimmed" ta="center" py="md">
+        No trend data
+      </Text>
+    );
+  }
 
   return (
-    <TankTrendChart
-      readings={chartReadings}
-      tankName={tankName}
-      capacity={capacity}
-      loading={isLoading}
-    />
+    <Box>
+      <TankTrendChart
+        data={readings}
+        deliveries={tank.deliveries ?? []}
+        capacity={tank.capacity}
+        fuelTypeId={tank.fuelTypeId}
+        height={240}
+      />
+    </Box>
   );
 }

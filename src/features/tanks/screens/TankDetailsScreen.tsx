@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Grid, Paper, Text, Loader, Center } from '@mantine/core';
+import { Grid, Paper, Text, Loader, Center, Group } from '@mantine/core';
 import { Screen } from '@/layouts/Screen';
 import { TankAlertsPanel } from '../components/TankAlertsPanel';
 import { TankTrendPanel } from '../components/TankTrendPanel';
@@ -52,12 +52,18 @@ export function TankDetailsScreen() {
 
         <Grid.Col span={{ base: 12, md: 8 }}>
           <Paper p="md" radius="md" withBorder mb="md">
-            <Text fw={600} mb="md">Level Trend</Text>
+            <Group justify="space-between" mb="md">
+              <Text fw={700}>Level Trend</Text>
+              <Text size="xs" c="dimmed">Last 24h</Text>
+            </Group>
             <TankTrendPanel tankId={tank.id} />
           </Paper>
 
           <Paper p="md" radius="md" withBorder>
-            <Text fw={600} mb="md">Alerts</Text>
+            <Group justify="space-between" mb="md">
+              <Text fw={700}>Alerts</Text>
+              <Text size="xs" c="dimmed">Active</Text>
+            </Group>
             <TankAlertsPanel tankId={tank.id} />
           </Paper>
         </Grid.Col>

@@ -361,6 +361,8 @@ export default function DashboardScreen() {
         </Grid.Col>
       </Grid>
 
+      <DashboardQuickActions actions={quickActions} centered />
+
       <Grid gutter="md">
         <Grid.Col span={{ base: 12, lg: 8 }}>
           <Paper p="md" radius="md" withBorder bg="white">
@@ -385,15 +387,12 @@ export default function DashboardScreen() {
       </Grid>
 
       <Grid gutter="md">
-        <Grid.Col span={{ base: 12, xl: 8 }}>
+        <Grid.Col span={12}>
           <RecentSalesTable
             rows={recentRows}
             loading={isLatestSalesLoading}
             onViewAll={() => navigate(paths.fuelSales)}
           />
-        </Grid.Col>
-        <Grid.Col span={{ base: 12, xl: 4 }}>
-          <DashboardQuickActions actions={quickActions} />
         </Grid.Col>
       </Grid>
     </Stack>

@@ -10,16 +10,17 @@ export interface DashboardQuickActionItem {
 
 interface DashboardQuickActionsProps {
   actions: DashboardQuickActionItem[];
+  centered?: boolean;
 }
 
-export function DashboardQuickActions({ actions }: DashboardQuickActionsProps) {
+export function DashboardQuickActions({ actions, centered = false }: DashboardQuickActionsProps) {
   return (
     <Paper p="md" radius="md" withBorder bg="white">
-      <Text fw={600} mb="sm">
+      <Text fw={600} mb="sm" ta={centered ? 'center' : 'left'}>
         Quick Actions
       </Text>
 
-      <Group gap="sm" wrap="wrap">
+      <Group gap="sm" wrap="wrap" justify={centered ? 'center' : 'flex-start'}>
         {actions.map((action) => {
           const Icon = action.icon;
 
