@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Box } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { Outlet } from "react-router-dom";
@@ -12,11 +12,6 @@ export default function AppShellLayout() {
   const isMobile = useMediaQuery("(max-width: 768px)");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
-
-  // Close mobile drawer on route change / resize to desktop
-  useEffect(() => {
-    if (!isMobile) setMobileOpen(false);
-  }, [isMobile]);
 
   const sidebarVisible = isMobile ? mobileOpen : !collapsed;
 

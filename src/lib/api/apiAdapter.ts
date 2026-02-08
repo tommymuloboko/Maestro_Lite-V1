@@ -1,11 +1,8 @@
 /**
- * API Adapter pattern – single interface for all backend operations.
+ * API Adapter – provides the real API service for backend operations.
  *
- * Two implementations:
- * 1. RealApiService  → calls Node.js backend at localhost:3000/api
- * 2. MockApiService  → returns in-memory mock data with simulated delays
- *
- * Switch via VITE_USE_MOCK_API env var (defaults to 'true' in dev).
+ * Connects to the Node.js backend at localhost:3000/api.
+ * All mock functionality has been removed - system runs on real data only.
  */
 
 import type { User, LoginCredentials, AuthTokens } from '@/types/auth';
@@ -14,7 +11,7 @@ import type { FuelTransaction, RawFuelTransaction, VerifiedFuelTransaction, Fuel
 import type { Pump } from '@/types/pumps';
 import type { Tank, TankReading, TankAlert, TankTrendPoint } from '@/types/tanks';
 import type { Attendant, AttendantRfidTag } from '@/types/attendants';
-import type { PaymentType, PaginatedResponse } from '@/types/common';
+import type { PaginatedResponse } from '@/types/common';
 import type {
   ShiftSummaryReport,
   DailySalesReport,
@@ -91,26 +88,19 @@ export interface IApiService {
 
 // ─── Factory ─────────────────────────────────────────────────
 
+import { RealApiService } from './realApiService';
+
 let _instance: IApiService | null = null;
 
 export async function getApiService(): Promise<IApiService> {
   if (_instance) return _instance;
 
-  const { env } = await import('@/config/env');
-
-  if (env.useMockApi) {
-    const { MockApiService } = await import('./mockApiService');
-    _instance = new MockApiService();
-  } else {
-    const { RealApiService } = await import('./realApiService');
-    _instance = new RealApiService();
-  }
-
+  _instance = new RealApiService();
   return _instance;
 }
 
 /**
- * Reset the cached instance (useful for testing or switching modes at runtime).
+ * Reset the cached instance (useful for testing or reconnecting).
  */
 export function resetApiService(): void {
   _instance = null;

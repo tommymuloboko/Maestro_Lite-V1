@@ -1,7 +1,22 @@
-import { Stack, Text, Paper } from '@mantine/core';
+import { Stack, Text, Paper, Group, Badge } from '@mantine/core';
+import { notifications } from '@mantine/notifications';
+import { BulkPaymentAllocator } from './BulkPaymentAllocator';
+import {
+  useShiftRawTransactions,
+  useShiftVerifiedTransactions,
+  useShiftDeclaration,
+  useShiftVerificationSummary,
+} from '../api/shifts.hooks';
 
-export function VerificationWorkspace() {
-  // TODO: Implement verification logic
+interface VerificationWorkspaceProps {
+  shiftId: string;
+}
+
+export function VerificationWorkspace({ shiftId }: VerificationWorkspaceProps) {
+  const { data: rawTransactions = [], isLoading: loadingRaw } = useShiftRawTransactions(shiftId);
+  const { data: verifiedTransactions = [], isLoading: loadingVerified } = useShiftVerifiedTransactions(shiftId);
+  const { data: declaration } = useShiftDeclaration(shiftId);
+  const { data: verificationSummary } = useShiftVerificationSummary(shiftId);
 
   return (
     <Stack gap="md">
@@ -11,16 +26,51 @@ export function VerificationWorkspace() {
 
       <Paper p="sm" bg="gray.0" radius="md">
         <Text size="sm" fw={500} mb="sm">Pump Readings</Text>
+        <Group gap="sm">
+          <Badge variant="light" color="blue">
+            Raw: {loadingRaw ? '...' : rawTransactions.length}
+          </Badge>
+          <Badge variant="light" color="green">
+            Verified: {loadingVerified ? '...' : verifiedTransactions.length}
+          </Badge>
+        </Group>
+      </Paper>
+
+      <Paper p="sm" bg="gray.0" radius="md">
+        <Text size="sm" fw={500} mb="sm">Declaration & Summary</Text>
         <Text size="xs" c="dimmed">
-          Closing readings will be compared with opening readings to calculate expected sales.
+          Declared Total: {declaration ? declaration.declaredTotal.toLocaleString() : 'Not submitted'}
+        </Text>
+        <Text size="xs" c="dimmed">
+          Verified Total: {verificationSummary ? verificationSummary.verifiedTotal.toLocaleString() : 'Not verified'}
         </Text>
       </Paper>
 
       <Paper p="sm" bg="gray.0" radius="md">
         <Text size="sm" fw={500} mb="sm">Payment Allocation</Text>
-        <Text size="xs" c="dimmed">
-          Verify that all payments are correctly allocated to transactions.
-        </Text>
+        <BulkPaymentAllocator
+          transactions={rawTransactions.map((tx) => ({
+            id: tx.id,
+            transactionNumber: String(tx.transactionId),
+            amount: tx.amount,
+            pumpId: String(tx.pumpId),
+            nozzleId: '',
+            fuelType: '',
+            volume: 0,
+            unitPrice: 0,
+            timestamp: tx.time,
+            isVoided: false,
+            isVerified: tx.isVerified,
+            paymentType: undefined,
+          }))}
+          onAllocate={(allocations) => {
+            notifications.show({
+              color: 'blue',
+              title: 'Allocations captured',
+              message: `${allocations.length} transaction(s) prepared for verification.`,
+            });
+          }}
+        />
       </Paper>
     </Stack>
   );

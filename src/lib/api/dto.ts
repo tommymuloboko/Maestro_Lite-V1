@@ -1,11 +1,9 @@
 // Data Transfer Objects for API requests/responses
 // These mirror the Node.js backend at localhost:3000/api
 
-import type { User, AuthTokens } from '@/types/auth';
 import type { PaymentType } from '@/types/common';
 import type { RawFuelTransaction, VerifiedFuelTransaction } from '@/types/fuel';
 import type {
-  ShiftCloseDeclaration,
   ShiftVerificationSummary,
   ShiftStatus,
 } from '@/types/shifts';
@@ -17,9 +15,20 @@ export interface LoginRequestDto {
   password: string;
 }
 
+/** Backend login response format */
 export interface LoginResponseDto {
-  user: User;
-  tokens: AuthTokens;
+  success: boolean;
+  token: string;
+  expiresIn: string; // e.g., "24h"
+  user: {
+    id: string;
+    username: string;
+    full_name?: string;
+    email?: string;
+    roles?: string[];
+    company_id?: string;
+    station_id?: string;
+  };
 }
 
 // ─── Shifts ──────────────────────────────────────────────────
@@ -146,8 +155,8 @@ export interface TankReadingDto {
 // ─── Reports (all use verified data only) ────────────────────
 
 export interface ReportFiltersDto {
-  startDate: string;
-  endDate: string;
+  startDate?: string;
+  endDate?: string;
   attendantId?: string;
   pumpId?: string;
   shiftId?: string;

@@ -1,8 +1,9 @@
-import { Paper, Group, Text, Badge, Box, SimpleGrid } from '@mantine/core';
+import { useState, useEffect } from 'react';
+import { Paper, Group, Text, Badge, Box, SimpleGrid, Loader, Center } from '@mantine/core';
 import { IconDroplet, IconTemperature, IconTruckDelivery } from '@tabler/icons-react';
-import type { Tank, TankStatus } from '@/types/tanks';
+import type { Tank, TankStatus, TankTrendPoint } from '@/types/tanks';
 import { TankTrendChart } from './TankTrendChart';
-import { getMockTankTrend } from '@/mocks';
+import { getApiService } from '@/lib/api/apiAdapter';
 
 interface TankCardProps {
   tank: Tank;
@@ -50,6 +51,24 @@ function getGaugeColor(fuelTypeId: string): string {
 }
 
 export function TankCard({ tank }: TankCardProps) {
+  const [trendData, setTrendData] = useState<TankTrendPoint[]>([]);
+  const [isLoadingTrend, setIsLoadingTrend] = useState(true);
+
+  useEffect(() => {
+    async function loadTrend() {
+      try {
+        const api = await getApiService();
+        const data = await api.getTankTrend(tank.id);
+        setTrendData(data);
+      } catch (error) {
+        console.error('Failed to load tank trend:', error);
+      } finally {
+        setIsLoadingTrend(false);
+      }
+    }
+    loadTrend();
+  }, [tank.id]);
+
   const gaugeColor = getGaugeColor(tank.fuelTypeId);
   const fillPercent = Math.min(100, Math.max(0, tank.currentLevel));
   const waterWarning = tank.waterHeight > 0;
@@ -59,7 +78,6 @@ export function TankCard({ tank }: TankCardProps) {
     ? Math.min(fillPercent, (tank.waterHeight / (tank.capacity * 0.01)) * 0.5)
     : 0;
 
-  const trendData = getMockTankTrend(tank.id);
   const latestDelivery = tank.deliveries.length > 0
     ? tank.deliveries[tank.deliveries.length - 1]
     : null;
@@ -205,7 +223,11 @@ export function TankCard({ tank }: TankCardProps) {
       </Group>
 
       {/* 24h Volume Trend Chart */}
-      {trendData.length > 0 && (
+      {isLoadingTrend ? (
+        <Center h={180} mt="md">
+          <Loader size="sm" />
+        </Center>
+      ) : trendData.length > 0 && (
         <Box mt="md">
           <Text size="xs" c="dimmed" mb={4}>24h Volume Trend</Text>
           <TankTrendChart

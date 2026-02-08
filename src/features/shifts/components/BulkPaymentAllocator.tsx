@@ -1,4 +1,5 @@
 import { Stack, Text, Table, Select, Button, Group } from '@mantine/core';
+import { useState } from 'react';
 import type { FuelTransaction } from '@/types/fuel';
 import type { PaymentType } from '@/types/common';
 import { paymentTypeLabels } from '@/config/stationDefaults';
@@ -9,8 +10,9 @@ interface BulkPaymentAllocatorProps {
   onAllocate: (allocations: { transactionId: string; paymentType: PaymentType }[]) => void;
 }
 
-export function BulkPaymentAllocator({ transactions, onAllocate: _onAllocate }: BulkPaymentAllocatorProps) {
+export function BulkPaymentAllocator({ transactions, onAllocate }: BulkPaymentAllocatorProps) {
   const unallocated = transactions.filter((tx) => !tx.paymentType);
+  const [allocations, setAllocations] = useState<Record<string, PaymentType | undefined>>({});
 
   if (unallocated.length === 0) {
     return (
@@ -43,6 +45,13 @@ export function BulkPaymentAllocator({ transactions, onAllocate: _onAllocate }: 
                 <Select
                   placeholder="Select"
                   size="xs"
+                  value={allocations[tx.id] ?? null}
+                  onChange={(value) => {
+                    setAllocations((prev) => ({
+                      ...prev,
+                      [tx.id]: value ? (value as PaymentType) : undefined,
+                    }));
+                  }}
                   data={Object.entries(paymentTypeLabels).map(([value, label]) => ({
                     value,
                     label,
@@ -55,7 +64,21 @@ export function BulkPaymentAllocator({ transactions, onAllocate: _onAllocate }: 
       </Table>
 
       <Group justify="flex-end">
-        <Button size="sm">Apply Allocations</Button>
+        <Button
+          size="sm"
+          onClick={() => {
+            const selected = Object.entries(allocations)
+              .filter(([, paymentType]) => !!paymentType)
+              .map(([transactionId, paymentType]) => ({
+                transactionId,
+                paymentType: paymentType as PaymentType,
+              }));
+            onAllocate(selected);
+          }}
+          disabled={Object.values(allocations).every((v) => !v)}
+        >
+          Apply Allocations
+        </Button>
       </Group>
     </Stack>
   );

@@ -1,5 +1,7 @@
 import { Modal, Stack, Select, MultiSelect, Button } from '@mantine/core';
 import { useForm } from '@mantine/form';
+import { useAttendants } from '@/features/settings/api/settings.hooks';
+import { usePumps } from '@/features/pumps/api/pumps.hooks';
 
 interface StartShiftModalProps {
   opened: boolean;
@@ -9,6 +11,9 @@ interface StartShiftModalProps {
 }
 
 export function StartShiftModal({ opened, onClose, onSubmit, isLoading }: StartShiftModalProps) {
+  const { data: attendantsData = [], isLoading: isLoadingAttendants } = useAttendants();
+  const { data: pumpsData = [], isLoading: isLoadingPumps } = usePumps();
+
   const form = useForm({
     initialValues: {
       attendantId: '',
@@ -20,18 +25,15 @@ export function StartShiftModal({ opened, onClose, onSubmit, isLoading }: StartS
     },
   });
 
-  // TODO: Replace with real data from hooks
-  const attendants = [
-    { value: '1', label: 'John Mwamba' },
-    { value: '2', label: 'Mary Banda' },
-  ];
+  const attendants = attendantsData.map((attendant) => ({
+    value: attendant.id,
+    label: `${attendant.name} (${attendant.employeeCode})`,
+  }));
 
-  const pumps = [
-    { value: '1', label: 'Pump 1' },
-    { value: '2', label: 'Pump 2' },
-    { value: '3', label: 'Pump 3' },
-    { value: '4', label: 'Pump 4' },
-  ];
+  const pumps = pumpsData.map((pump) => ({
+    value: pump.id,
+    label: pump.name,
+  }));
 
   return (
     <Modal opened={opened} onClose={onClose} title="Start New Shift">
@@ -42,6 +44,7 @@ export function StartShiftModal({ opened, onClose, onSubmit, isLoading }: StartS
             placeholder="Select attendant"
             data={attendants}
             searchable
+            disabled={isLoadingAttendants}
             {...form.getInputProps('attendantId')}
           />
 
@@ -49,10 +52,11 @@ export function StartShiftModal({ opened, onClose, onSubmit, isLoading }: StartS
             label="Pumps"
             placeholder="Select pumps"
             data={pumps}
+            disabled={isLoadingPumps}
             {...form.getInputProps('pumpIds')}
           />
 
-          <Button type="submit" fullWidth loading={isLoading}>
+          <Button type="submit" fullWidth loading={isLoading} disabled={isLoadingAttendants || isLoadingPumps}>
             Start Shift
           </Button>
         </Stack>

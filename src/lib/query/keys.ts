@@ -16,7 +16,7 @@ export const queryKeys = {
   shifts: {
     all: ['shifts'] as const,
     lists: () => [...queryKeys.shifts.all, 'list'] as const,
-    list: (filters: Record<string, unknown>) => [...queryKeys.shifts.lists(), filters] as const,
+    list: (filters: unknown) => [...queryKeys.shifts.lists(), filters] as const,
     details: () => [...queryKeys.shifts.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.shifts.details(), id] as const,
   },
@@ -25,9 +25,9 @@ export const queryKeys = {
   fuelSales: {
     all: ['fuelSales'] as const,
     lists: () => [...queryKeys.fuelSales.all, 'list'] as const,
-    list: (filters: Record<string, unknown>) => [...queryKeys.fuelSales.lists(), filters] as const,
+    list: (filters: unknown) => [...queryKeys.fuelSales.lists(), filters] as const,
     detail: (id: string) => [...queryKeys.fuelSales.all, 'detail', id] as const,
-    summary: (filters: Record<string, unknown>) => [...queryKeys.fuelSales.all, 'summary', filters] as const,
+    summary: (filters: unknown) => [...queryKeys.fuelSales.all, 'summary', filters] as const,
   },
 
   // Pumps
@@ -51,10 +51,10 @@ export const queryKeys = {
   // Reports
   reports: {
     all: ['reports'] as const,
-    shiftSummary: (filters: Record<string, unknown>) => [...queryKeys.reports.all, 'shiftSummary', filters] as const,
-    dailySales: (filters: Record<string, unknown>) => [...queryKeys.reports.all, 'dailySales', filters] as const,
-    attendantPerformance: (filters: Record<string, unknown>) => [...queryKeys.reports.all, 'attendantPerformance', filters] as const,
-    pumpTotals: (filters: Record<string, unknown>) => [...queryKeys.reports.all, 'pumpTotals', filters] as const,
+    shiftSummary: (filters: unknown) => [...queryKeys.reports.all, 'shiftSummary', filters] as const,
+    dailySales: (filters: unknown) => [...queryKeys.reports.all, 'dailySales', filters] as const,
+    attendantPerformance: (filters: unknown) => [...queryKeys.reports.all, 'attendantPerformance', filters] as const,
+    pumpTotals: (filters: unknown) => [...queryKeys.reports.all, 'pumpTotals', filters] as const,
   },
 
   // Settings

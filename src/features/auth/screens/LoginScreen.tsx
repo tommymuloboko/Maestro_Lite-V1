@@ -2,10 +2,10 @@ import { useState } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
 import { Box, Paper, Text } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
+import { IconCheck, IconX, IconGasStation } from "@tabler/icons-react";
 import LoginForm from "../components/LoginForm";
 import { useAuth } from "@/hooks/useAuth";
 import { paths } from "@/routes/paths";
-import { IconGasStation, IconPower } from "@tabler/icons-react";
 
 export default function LoginScreen() {
   const navigate = useNavigate();
@@ -18,19 +18,49 @@ export default function LoginScreen() {
 
   const handleLogin = async (values: { username: string; password: string }) => {
     setLoading(true);
+
+    // Show loading notification
+    const loadingId = notifications.show({
+      id: 'login-loading',
+      title: "Signing in...",
+      message: "Authenticating with the server",
+      color: "blue",
+      loading: true,
+      autoClose: false,
+      withCloseButton: false,
+    });
+
     try {
       await login(values);
-      notifications.show({
+
+      // Update notification to success
+      notifications.update({
+        id: loadingId,
         title: "Welcome back!",
-        message: "Logged in successfully",
+        message: "You have been signed in successfully",
         color: "green",
+        icon: <IconCheck size={18} />,
+        loading: false,
+        autoClose: 3000,
+        withCloseButton: true,
       });
+
       navigate(paths.dashboard);
-    } catch {
-      notifications.show({
+    } catch (error) {
+      // Update notification to error
+      const errorMessage = error instanceof Error
+        ? error.message
+        : "Invalid username or password";
+
+      notifications.update({
+        id: loadingId,
         title: "Login failed",
-        message: "Invalid username or password. Try admin / admin123",
+        message: errorMessage,
         color: "red",
+        icon: <IconX size={18} />,
+        loading: false,
+        autoClose: 5000,
+        withCloseButton: true,
       });
     } finally {
       setLoading(false);

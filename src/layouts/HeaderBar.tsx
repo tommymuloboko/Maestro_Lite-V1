@@ -12,6 +12,7 @@ import {
 import { IconBell, IconMenu2 } from "@tabler/icons-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useStationConfig } from "@/hooks/useStationConfig";
+import BackendStatusIndicator from "@/components/BackendStatusIndicator";
 
 type BackofficeHeaderProps = {
   bannerText?: React.ReactNode;
@@ -158,6 +159,8 @@ export default function BackofficeHeader({
           {timeText}
         </Badge>
 
+        {/* Backend status indicator */}
+        <BackendStatusIndicator />
         <ActionIcon
           variant="subtle"
           radius="md"

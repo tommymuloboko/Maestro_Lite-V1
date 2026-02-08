@@ -11,18 +11,22 @@ export const endpoints = {
     me: '/auth/me',
   },
 
-  // Shifts
+  // Attendant Shifts (station-scoped)
   shifts: {
-    list: '/shifts',
-    get: (id: string) => `/shifts/${id}`,
-    start: '/shifts/start',
-    end: (id: string) => `/shifts/${id}/end`,
-    verify: (id: string) => `/shifts/${id}/verify`,
-    transactions: (id: string) => `/shifts/${id}/transactions`,
-    rawTransactions: (id: string) => `/shifts/${id}/transactions/raw`,
-    verifiedTransactions: (id: string) => `/shifts/${id}/transactions/verified`,
-    declaration: (id: string) => `/shifts/${id}/declaration`,
-    verificationSummary: (id: string) => `/shifts/${id}/verification-summary`,
+    // List shifts for a station: GET /api/stations/{stationId}/attendant-shifts
+    listByStation: (stationId: string) => `/stations/${stationId}/attendant-shifts`,
+    get: (id: string) => `/attendant-shifts/${id}`,
+    open: '/attendant-shifts/open',
+    start: '/attendant-shifts/open',
+    end: (id: string) => `/attendant-shifts/${id}/end`,
+    verify: (id: string) => `/attendant-shifts/${id}/verify`,
+    dispute: (id: string) => `/attendant-shifts/${id}/dispute`,
+    rawTransactions: (id: string) => `/attendant-shifts/${id}/raw-transactions`,
+    verifiedTransactions: (id: string) => `/attendant-shifts/${id}/verified-transactions`,
+    closeDeclaration: (id: string) => `/attendant-shifts/${id}/close-declaration`,
+    declaration: (id: string) => `/attendant-shifts/${id}/close-declaration`,
+    verification: (id: string) => `/attendant-shifts/${id}/verification`,
+    verificationSummary: (id: string) => `/attendant-shifts/${id}/verification`,
   },
 
   // Fuel Transactions
@@ -34,20 +38,20 @@ export const endpoints = {
     verified: '/fuel-sales/verified',
   },
 
-  // Pumps
+  // Pumps (PTS system)
   pumps: {
-    list: '/pumps',
-    get: (id: string) => `/pumps/${id}`,
-    status: '/pumps/status',
-    transactions: (id: string) => `/pumps/${id}/transactions`,
+    list: '/pts/pumps',
+    get: (id: string) => `/pts/pumps/${id}`,
+    status: '/pts/pumps/status',
+    transactions: (id: string) => `/pts/pumps/${id}/transactions`,
   },
 
-  // Tanks
+  // Tanks (PTS system)
   tanks: {
-    list: '/tanks',
-    get: (id: string) => `/tanks/${id}`,
-    readings: (id: string) => `/tanks/${id}/readings`,
-    alerts: '/tanks/alerts',
+    list: '/pts/tanks',
+    get: (id: string) => `/pts/tanks/${id}`,
+    readings: (id: string) => `/pts/tanks/${id}/readings`,
+    alerts: '/pts/tanks/alerts',
   },
 
   // Reports (all use VERIFIED transactions only)

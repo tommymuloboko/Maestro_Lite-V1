@@ -1,9 +1,38 @@
-import { SimpleGrid, Group, Text, Badge, Stack } from '@mantine/core';
+import { useState, useEffect } from 'react';
+import { SimpleGrid, Group, Text, Badge, Stack, Loader, Center } from '@mantine/core';
 import { TankCard } from '../components/TankCard';
-import { mockTanks } from '@/mocks';
+import type { Tank } from '@/types/tanks';
+import { getApiService } from '@/lib/api/apiAdapter';
 
 export function TanksScreen() {
-  const tanks = mockTanks;
+  const [tanks, setTanks] = useState<Tank[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadTanks() {
+      try {
+        const api = await getApiService();
+        const data = await api.getTanks();
+        // Defensive: ensure we always have an array
+        setTanks(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error('Failed to load tanks:', error);
+        setTanks([]);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadTanks();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <Center h={300}>
+        <Loader size="lg" />
+      </Center>
+    );
+  }
+
   const totalAlarms = tanks.reduce((sum, t) => sum + t.alarms.length, 0);
   const isSimulator = tanks.some((t) => t.atgSource === 'SIMULATOR');
 
@@ -33,6 +62,10 @@ export function TanksScreen() {
           <TankCard key={tank.id} tank={tank} />
         ))}
       </SimpleGrid>
+
+      {tanks.length === 0 && (
+        <Text c="dimmed" ta="center" py="xl">No tanks configured</Text>
+      )}
     </Stack>
   );
 }

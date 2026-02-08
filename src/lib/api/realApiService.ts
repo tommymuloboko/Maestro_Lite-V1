@@ -2,7 +2,6 @@
  * Real API Service — calls the Node.js backend at localhost:3000/api.
  *
  * Uses the shared `api` client (fetch wrapper with auth headers).
- * When backend is running, set VITE_USE_MOCK_API=false to use this.
  */
 
 import type { IApiService } from './apiAdapter';
@@ -38,6 +37,24 @@ import type {
 
 import { api } from './client';
 import { endpoints } from './endpoints';
+import { getStoredStationId, getStoredUser } from '@/lib/storage/secureStore';
+
+// ─── Helper to parse expiresIn string ─────────────────────────
+
+function parseExpiresIn(expiresIn: string): number {
+  const match = expiresIn?.match(/^(\d+)([hmd])$/);
+  if (!match) return 24 * 60 * 60 * 1000; // Default 24h
+
+  const value = parseInt(match[1], 10);
+  const unit = match[2];
+
+  switch (unit) {
+    case 'h': return value * 60 * 60 * 1000;
+    case 'd': return value * 24 * 60 * 60 * 1000;
+    case 'm': return value * 60 * 1000;
+    default: return 24 * 60 * 60 * 1000;
+  }
+}
 
 // ─── Real API Service ────────────────────────────────────────
 
@@ -45,12 +62,41 @@ export class RealApiService implements IApiService {
   // ── Auth ───────────────────────────────────────────────────
 
   async login(credentials: LoginCredentials): Promise<{ user: User; tokens: AuthTokens }> {
-    const res = await api.post<LoginResponseDto>(endpoints.auth.login, credentials);
-    return { user: res.user, tokens: res.tokens };
+    const res = await api.post<LoginResponseDto>(endpoints.auth.login, credentials, {
+      skipAuthRedirect: true, // Don't redirect on 401 for login failures
+    });
+
+    if (!res.success || !res.token || !res.user) {
+      throw new Error('Invalid response from server');
+    }
+
+    // Map backend user to frontend User type
+    const user: User = {
+      id: res.user.id,
+      username: res.user.username,
+      name: res.user.full_name || res.user.username,
+      email: res.user.email,
+      role: res.user.roles?.[0] || 'user',
+      companyId: res.user.company_id,
+      stationId: res.user.station_id,
+    };
+
+    // Build tokens with calculated expiry
+    const tokens: AuthTokens = {
+      accessToken: res.token,
+      refreshToken: res.token, // Backend uses single token
+      expiresAt: Date.now() + parseExpiresIn(res.expiresIn),
+    };
+
+    return { user, tokens };
   }
 
   async logout(): Promise<void> {
-    await api.post(endpoints.auth.logout);
+    try {
+      await api.post(endpoints.auth.logout);
+    } catch {
+      // Ignore logout errors - we're clearing local state anyway
+    }
   }
 
   async refreshToken(refreshToken: string): Promise<AuthTokens> {
@@ -64,9 +110,95 @@ export class RealApiService implements IApiService {
   // ── Shifts ─────────────────────────────────────────────────
 
   async getShifts(filters?: ShiftListFiltersDto): Promise<PaginatedResponse<Shift>> {
-    return api.get<PaginatedResponse<Shift>>(endpoints.shifts.list, {
-      params: filters as Record<string, string | number | boolean | undefined>,
+    // Get current user's stationId from stored user
+    const user = getStoredUser();
+    const stationId = user?.stationId || getStoredStationId();
+    const page = filters?.page ?? 1;
+    const pageSize = filters?.pageSize ?? 50;
+
+    if (!stationId) {
+      console.warn('[API] No stationId available, returning empty shifts');
+      return { data: [], total: 0, page, pageSize, totalPages: 0 };
+    }
+
+    // Backend response format
+    interface ShiftResponseDto {
+      error: boolean;
+      count: number;
+      data: Array<{
+        id: string;
+        company_id: string;
+        station_id: string;
+        attendant_id: string;
+        tag_number: string | null;
+        started_at: string;
+        ended_at: string | null;
+        is_open: boolean;
+        is_ended: boolean;
+        is_pending_verification: boolean;
+        is_verified: boolean;
+        is_disputed: boolean;
+        opened_by_user_id: string;
+        created_at: string;
+        attendant_no?: string;
+        attendant_name?: string;
+      }>;
+    }
+
+    const res = await api.get<ShiftResponseDto>(endpoints.shifts.listByStation(stationId), {
+      params: {
+        limit: pageSize,
+        offset: (page - 1) * pageSize,
+        ...(filters?.attendantId && { attendant_id: filters.attendantId }),
+        ...(filters?.startDate && { from: filters.startDate }),
+        ...(filters?.endDate && { to: filters.endDate }),
+      },
     });
+
+    // Map snake_case to camelCase
+    const shifts: Shift[] = (res.data || []).map((s) => ({
+      id: s.id,
+      companyId: s.company_id,
+      stationId: s.station_id,
+      attendantId: s.attendant_id,
+      tagNumber: s.tag_number || '',
+      pumpIds: [],
+      startTime: s.started_at,
+      endTime: s.ended_at || undefined,
+      status: s.is_verified ? 'verified' : s.is_ended ? 'ended' : 'active',
+      isOpen: s.is_open,
+      isEnded: s.is_ended,
+      isPendingVerification: s.is_pending_verification,
+      isVerified: s.is_verified,
+      isDisputed: s.is_disputed,
+      openedByUserId: s.opened_by_user_id,
+      createdAt: s.created_at,
+      updatedAt: s.created_at,
+      openingReadings: [],
+      transactions: [],
+      payments: [],
+      // Enriched fields from join
+      attendant: s.attendant_name ? {
+        id: s.attendant_id,
+        companyId: s.company_id,
+        stationId: s.station_id,
+        employeeId: '',
+        attendantNo: s.attendant_no || '',
+        name: s.attendant_name,
+        employeeCode: s.attendant_no || '',
+        isActive: true,
+        createdAt: s.created_at,
+        updatedAt: s.created_at,
+      } : undefined,
+    }));
+
+    return {
+      data: shifts,
+      total: res.count || shifts.length,
+      page,
+      pageSize,
+      totalPages: Math.ceil((res.count || 0) / pageSize),
+    };
   }
 
   async getShift(id: string): Promise<Shift> {
@@ -86,26 +218,36 @@ export class RealApiService implements IApiService {
   }
 
   async getShiftRawTransactions(shiftId: string): Promise<RawFuelTransaction[]> {
-    return api.get<RawFuelTransaction[]>(endpoints.shifts.rawTransactions(shiftId));
+    const res = await api.get<{ data: RawFuelTransaction[] }>(endpoints.shifts.rawTransactions(shiftId));
+    return res.data;
   }
 
   async getShiftVerifiedTransactions(shiftId: string): Promise<VerifiedFuelTransaction[]> {
-    return api.get<VerifiedFuelTransaction[]>(endpoints.shifts.verifiedTransactions(shiftId));
+    const res = await api.get<{ data: VerifiedFuelTransaction[] }>(endpoints.shifts.verifiedTransactions(shiftId));
+    return res.data;
   }
 
   async getShiftDeclaration(shiftId: string): Promise<ShiftCloseDeclaration | null> {
-    return api.get<ShiftCloseDeclaration | null>(endpoints.shifts.declaration(shiftId));
+    try {
+      return await api.get<ShiftCloseDeclaration>(endpoints.shifts.declaration(shiftId));
+    } catch {
+      return null;
+    }
   }
 
   async getShiftVerificationSummary(shiftId: string): Promise<ShiftVerificationSummary | null> {
-    return api.get<ShiftVerificationSummary | null>(endpoints.shifts.verificationSummary(shiftId));
+    try {
+      return await api.get<ShiftVerificationSummary>(endpoints.shifts.verificationSummary(shiftId));
+    } catch {
+      return null;
+    }
   }
 
   // ── Fuel Sales ─────────────────────────────────────────────
 
   async getFuelSales(filters?: FuelSalesFiltersDto): Promise<PaginatedResponse<FuelTransaction>> {
     return api.get<PaginatedResponse<FuelTransaction>>(endpoints.fuelSales.list, {
-      params: filters as Record<string, string | number | boolean | undefined>,
+      params: filters,
     });
   }
 
@@ -115,14 +257,16 @@ export class RealApiService implements IApiService {
 
   async getFuelSalesSummary(filters?: FuelSalesFiltersDto): Promise<FuelSalesSummary> {
     return api.get<FuelSalesSummary>(endpoints.fuelSales.summary, {
-      params: filters as Record<string, string | number | boolean | undefined>,
+      params: filters,
     });
   }
 
   // ── Pumps ──────────────────────────────────────────────────
 
   async getPumps(): Promise<Pump[]> {
-    return api.get<Pump[]>(endpoints.pumps.list);
+    const res = await api.get<Pump[] | { data: Pump[] }>(endpoints.pumps.list);
+    // Handle both direct array and wrapped response
+    return Array.isArray(res) ? res : (res?.data ?? []);
   }
 
   async getPump(id: string): Promise<Pump> {
@@ -136,7 +280,9 @@ export class RealApiService implements IApiService {
   // ── Tanks ──────────────────────────────────────────────────
 
   async getTanks(): Promise<Tank[]> {
-    return api.get<Tank[]>(endpoints.tanks.list);
+    const res = await api.get<Tank[] | { data: Tank[] }>(endpoints.tanks.list);
+    // Handle both direct array and wrapped response
+    return Array.isArray(res) ? res : (res?.data ?? []);
   }
 
   async getTank(id: string): Promise<Tank> {
@@ -148,10 +294,7 @@ export class RealApiService implements IApiService {
   }
 
   async getTankTrend(tankId: string): Promise<TankTrendPoint[]> {
-    // Trend data comes from readings endpoint — backend provides it
-    return api.get<TankTrendPoint[]>(endpoints.tanks.readings(tankId), {
-      params: { format: 'trend' },
-    });
+    return api.get<TankTrendPoint[]>(endpoints.tanks.readings(tankId));
   }
 
   async getTankAlerts(): Promise<TankAlert[]> {
@@ -162,25 +305,25 @@ export class RealApiService implements IApiService {
 
   async getShiftSummaryReport(filters: ReportFiltersDto): Promise<ShiftSummaryReport[]> {
     return api.get<ShiftSummaryReport[]>(endpoints.reports.shiftSummary, {
-      params: filters as Record<string, string | number | boolean | undefined>,
+      params: filters,
     });
   }
 
   async getDailySalesReport(filters: ReportFiltersDto): Promise<DailySalesReport[]> {
     return api.get<DailySalesReport[]>(endpoints.reports.dailySales, {
-      params: filters as Record<string, string | number | boolean | undefined>,
+      params: filters,
     });
   }
 
   async getAttendantPerformanceReport(filters: ReportFiltersDto): Promise<AttendantPerformanceReport[]> {
     return api.get<AttendantPerformanceReport[]>(endpoints.reports.attendantPerformance, {
-      params: filters as Record<string, string | number | boolean | undefined>,
+      params: filters,
     });
   }
 
   async getPumpTotalsReport(filters: ReportFiltersDto): Promise<PumpTotalsReport[]> {
     return api.get<PumpTotalsReport[]>(endpoints.reports.pumpTotals, {
-      params: filters as Record<string, string | number | boolean | undefined>,
+      params: filters,
     });
   }
 
@@ -191,7 +334,37 @@ export class RealApiService implements IApiService {
   }
 
   async getDashboardAlerts(): Promise<TankAlert[]> {
-    return api.get<TankAlert[]>(endpoints.dashboard.alerts);
+    const normalizeAlerts = (payload: unknown): TankAlert[] => {
+      if (Array.isArray(payload)) {
+        return payload as TankAlert[];
+      }
+
+      if (payload && typeof payload === 'object') {
+        const data = (payload as { data?: unknown }).data;
+        if (Array.isArray(data)) {
+          return data as TankAlert[];
+        }
+      }
+
+      return [];
+    };
+
+    try {
+      const dashboardAlerts = await api.get<TankAlert[] | { data?: TankAlert[] }>(endpoints.dashboard.alerts);
+      const normalizedDashboardAlerts = normalizeAlerts(dashboardAlerts);
+      if (normalizedDashboardAlerts.length > 0) {
+        return normalizedDashboardAlerts;
+      }
+    } catch {
+      // Ignore dashboard alerts fetch failures and use tank alerts fallback.
+    }
+
+    try {
+      const tankAlerts = await api.get<TankAlert[] | { data?: TankAlert[] }>(endpoints.tanks.alerts);
+      return normalizeAlerts(tankAlerts);
+    } catch {
+      return [];
+    }
   }
 
   async getRecentUnverifiedShifts(): Promise<Shift[]> {
@@ -221,8 +394,6 @@ export class RealApiService implements IApiService {
   }
 
   async getAttendantTags(attendantId: string): Promise<AttendantRfidTag[]> {
-    return api.get<AttendantRfidTag[]>(endpoints.settings.attendantTags, {
-      params: { attendantId },
-    });
+    return api.get<AttendantRfidTag[]>(`${endpoints.settings.attendant(attendantId)}/tags`);
   }
 }

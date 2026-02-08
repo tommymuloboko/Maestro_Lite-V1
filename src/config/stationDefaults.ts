@@ -17,6 +17,7 @@ export const defaultPaymentTypes: PaymentType[] = [
 export const paymentTypeLabels: Record<PaymentType, string> = {
   cash: 'Cash',
   card: 'Card',
+  debtors: 'Debtors',
   mobile: 'Mobile Money',
   credit: 'Credit',
   other: 'Other',

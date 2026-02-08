@@ -9,8 +9,9 @@ export interface PrintOptions {
 
 export async function printElement(
   elementId: string,
-  _options: PrintOptions = {}
+  options: PrintOptions = {}
 ): Promise<void> {
+  void options;
   // For now, use browser print
   const element = document.getElementById(elementId);
   if (!element) {
@@ -44,8 +45,9 @@ export async function printElement(
 
 export async function printHtml(
   html: string,
-  _options: PrintOptions = {}
+  options: PrintOptions = {}
 ): Promise<void> {
+  void options;
   const printWindow = window.open('', '_blank');
   if (!printWindow) {
     throw new Error('Could not open print window');

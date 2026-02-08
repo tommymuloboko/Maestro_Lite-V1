@@ -3,35 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { paths } from '@/routes/paths';
 import { formatMoney } from '@/lib/utils/money';
 import { formatDateTime } from '@/lib/utils/dates';
-
-interface UnverifiedShift {
-  id: string;
-  attendantName: string;
-  endTime: string;
-  totalSales: number;
-  variance: number;
-}
+import { useRecentUnverifiedShifts } from '../api/dashboard.hooks';
 
 export function LatestUnverifiedTable() {
   const navigate = useNavigate();
+  const { data: shifts = [], isLoading, isError } = useRecentUnverifiedShifts();
 
-  // TODO: Replace with real data from useUnverifiedShifts hook
-  const shifts: UnverifiedShift[] = [
-    {
-      id: '1',
-      attendantName: 'John Mwamba',
-      endTime: '2026-02-06T14:30:00Z',
-      totalSales: 45200,
-      variance: -150,
-    },
-    {
-      id: '2',
-      attendantName: 'Mary Banda',
-      endTime: '2026-02-06T08:00:00Z',
-      totalSales: 38750,
-      variance: 25,
-    },
-  ];
+  if (isLoading) {
+    return <Text size="sm" c="dimmed" ta="center" py="md">Loading shifts...</Text>;
+  }
+
+  if (isError) {
+    return <Text size="sm" c="red" ta="center" py="md">Unable to load shifts</Text>;
+  }
 
   if (shifts.length === 0) {
     return (
@@ -55,12 +39,12 @@ export function LatestUnverifiedTable() {
       <Table.Tbody>
         {shifts.map((shift) => (
           <Table.Tr key={shift.id}>
-            <Table.Td>{shift.attendantName}</Table.Td>
-            <Table.Td>{formatDateTime(shift.endTime)}</Table.Td>
-            <Table.Td>{formatMoney(shift.totalSales)}</Table.Td>
+            <Table.Td>{shift.attendant?.name ?? 'Unknown'}</Table.Td>
+            <Table.Td>{formatDateTime(shift.endTime ?? shift.startTime)}</Table.Td>
+            <Table.Td>{formatMoney(shift.transactions.reduce((sum, tx) => sum + tx.amount, 0))}</Table.Td>
             <Table.Td>
-              <Badge color={shift.variance < 0 ? 'red' : 'green'}>
-                {formatMoney(shift.variance)}
+              <Badge color={(shift.verificationSummary?.varianceAmount ?? shift.variance?.variance ?? 0) < 0 ? 'red' : 'green'}>
+                {formatMoney(shift.verificationSummary?.varianceAmount ?? shift.variance?.variance ?? 0)}
               </Badge>
             </Table.Td>
             <Table.Td>

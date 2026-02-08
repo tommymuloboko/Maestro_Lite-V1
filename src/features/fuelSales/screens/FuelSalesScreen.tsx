@@ -1,4 +1,5 @@
-import { Button } from '@mantine/core';
+import { useState, useEffect } from 'react';
+import { Button, Loader, Center } from '@mantine/core';
 import { IconDownload } from '@tabler/icons-react';
 import { Screen } from '@/layouts/Screen';
 import { DataTable } from '@/components/common/DataTable';
@@ -7,11 +8,26 @@ import type { FuelTransaction } from '@/types/fuel';
 import { formatMoney, formatVolume } from '@/lib/utils/money';
 import { formatDateTime } from '@/lib/utils/dates';
 import { paymentTypeLabels } from '@/config/stationDefaults';
-import { mockFuelTransactions } from '@/mocks';
+import { getApiService } from '@/lib/api/apiAdapter';
 
 export function FuelSalesScreen() {
-  const transactions: FuelTransaction[] = mockFuelTransactions;
-  const isLoading = false;
+  const [transactions, setTransactions] = useState<FuelTransaction[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadTransactions() {
+      try {
+        const api = await getApiService();
+        const result = await api.getFuelSales();
+        setTransactions(result.data);
+      } catch (error) {
+        console.error('Failed to load fuel sales:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadTransactions();
+  }, []);
 
   const columns = [
     {
@@ -42,9 +58,20 @@ export function FuelSalesScreen() {
     {
       key: 'payment',
       header: 'Payment',
-      render: (tx: FuelTransaction) => paymentTypeLabels[tx.paymentType],
+      render: (tx: FuelTransaction) =>
+        tx.paymentType ? paymentTypeLabels[tx.paymentType] : 'Unassigned',
     },
   ];
+
+  if (isLoading) {
+    return (
+      <Screen title="Fuel Sales">
+        <Center h={300}>
+          <Loader size="lg" />
+        </Center>
+      </Screen>
+    );
+  }
 
   return (
     <Screen

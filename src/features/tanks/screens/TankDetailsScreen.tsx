@@ -1,20 +1,42 @@
+import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Grid, Paper, Text } from '@mantine/core';
+import { Grid, Paper, Text, Loader, Center } from '@mantine/core';
 import { Screen } from '@/layouts/Screen';
 import { TankAlertsPanel } from '../components/TankAlertsPanel';
 import { TankTrendPanel } from '../components/TankTrendPanel';
 import { TankCard } from '../components/TankCard';
 import type { Tank } from '@/types/tanks';
-import { getMockTankById } from '@/mocks';
+import { getApiService } from '@/lib/api/apiAdapter';
 
 export function TankDetailsScreen() {
   const { id } = useParams<{ id: string }>();
+  const [tank, setTank] = useState<Tank | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const tank: Tank | null = id ? getMockTankById(id) ?? null : null;
-  const isLoading = false;
+  useEffect(() => {
+    async function loadTank() {
+      if (!id) return;
+      try {
+        const api = await getApiService();
+        const data = await api.getTank(id);
+        setTank(data);
+      } catch (error) {
+        console.error('Failed to load tank:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadTank();
+  }, [id]);
 
   if (isLoading) {
-    return <Screen title="Loading..."><Text>Loading tank details...</Text></Screen>;
+    return (
+      <Screen title="Loading...">
+        <Center h={300}>
+          <Loader size="lg" />
+        </Center>
+      </Screen>
+    );
   }
 
   if (!tank) {

@@ -1,20 +1,43 @@
+import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Paper, Grid, Stack, Text, Button, Group } from '@mantine/core';
+import { Paper, Grid, Stack, Text, Button, Group, Loader, Center } from '@mantine/core';
 import { IconPrinter, IconCheck } from '@tabler/icons-react';
 import { Screen } from '@/layouts/Screen';
 import { TransactionsList } from '../components/TransactionsList';
 import { VerificationWorkspace } from '../components/VerificationWorkspace';
 import { VariancePanel } from '../components/VariancePanel';
-import { getMockShiftById } from '@/mocks';
+import type { Shift } from '@/types/shifts';
+import { getApiService } from '@/lib/api/apiAdapter';
 
 export function ShiftDetailsScreen() {
   const { id } = useParams<{ id: string }>();
+  const [shift, setShift] = useState<Shift | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const shift = id ? getMockShiftById(id) ?? null : null;
-  const isLoading = false;
+  useEffect(() => {
+    async function loadShift() {
+      if (!id) return;
+      try {
+        const api = await getApiService();
+        const data = await api.getShift(id);
+        setShift(data);
+      } catch (error) {
+        console.error('Failed to load shift:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadShift();
+  }, [id]);
 
   if (isLoading) {
-    return <Screen title="Loading..."><Text>Loading shift details...</Text></Screen>;
+    return (
+      <Screen title="Loading...">
+        <Center h={300}>
+          <Loader size="lg" />
+        </Center>
+      </Screen>
+    );
   }
 
   if (!shift) {
@@ -45,7 +68,7 @@ export function ShiftDetailsScreen() {
 
             <Paper p="md" radius="md" withBorder>
               <Text fw={600} mb="md">Verification</Text>
-              <VerificationWorkspace />
+              <VerificationWorkspace shiftId={shift.id} />
             </Paper>
           </Stack>
         </Grid.Col>

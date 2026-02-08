@@ -122,7 +122,7 @@ export function TankTrendChart({
           : []),
       ],
     };
-  }, [data, deliveries, capacity, fuelTypeId, color]);
+  }, [data, deliveries, capacity, color]);
 
   if (data.length === 0) return null;
 

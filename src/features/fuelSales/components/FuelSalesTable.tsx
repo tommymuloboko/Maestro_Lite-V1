@@ -42,7 +42,7 @@ export function FuelSalesTable({ transactions, onRowClick }: FuelSalesTableProps
             <Table.Td>{tx.fuelType}</Table.Td>
             <Table.Td>{formatVolume(tx.volume)}</Table.Td>
             <Table.Td>{formatMoney(tx.amount)}</Table.Td>
-            <Table.Td>{paymentTypeLabels[tx.paymentType]}</Table.Td>
+            <Table.Td>{tx.paymentType ? paymentTypeLabels[tx.paymentType] : 'Unassigned'}</Table.Td>
           </Table.Tr>
         ))}
       </Table.Tbody>

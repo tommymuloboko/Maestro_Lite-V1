@@ -64,7 +64,7 @@ export function TxDetailsDrawer({ transaction, opened, onClose }: TxDetailsDrawe
 
         <Group justify="space-between">
           <Text size="sm" c="dimmed">Payment</Text>
-          <Badge>{paymentTypeLabels[transaction.paymentType]}</Badge>
+          <Badge>{transaction.paymentType ? paymentTypeLabels[transaction.paymentType] : 'Unassigned'}</Badge>
         </Group>
 
         {transaction.isVoided && (

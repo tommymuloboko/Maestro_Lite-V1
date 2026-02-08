@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import type { ConnectionStatus } from '@/types/common';
 import { pollingIntervals } from '@/config/ui';
 import { env } from '@/config/env';
@@ -17,7 +17,7 @@ export function ConnectivityProvider({ children }: { children: ReactNode }) {
   const [apiStatus, setApiStatus] = useState<ConnectionStatus>('connecting');
   const [pts2Status, setPts2Status] = useState<ConnectionStatus>('connecting');
 
-  const checkApiConnection = async () => {
+  const checkApiConnection = useCallback(async () => {
     try {
       setApiStatus('connecting');
       const response = await fetch(`${env.apiBaseUrl}/health`, {
@@ -28,9 +28,9 @@ export function ConnectivityProvider({ children }: { children: ReactNode }) {
     } catch {
       setApiStatus('disconnected');
     }
-  };
+  }, []);
 
-  const checkPts2Connection = async () => {
+  const checkPts2Connection = useCallback(async () => {
     if (!pts2Url) {
       setPts2Status('disconnected');
       return;
@@ -46,17 +46,25 @@ export function ConnectivityProvider({ children }: { children: ReactNode }) {
     } catch {
       setPts2Status('disconnected');
     }
-  };
+  }, [pts2Url]);
 
-  const checkConnectivity = async () => {
+  const checkConnectivity = useCallback(async () => {
     await Promise.all([checkApiConnection(), checkPts2Connection()]);
-  };
+  }, [checkApiConnection, checkPts2Connection]);
 
   useEffect(() => {
-    checkConnectivity();
-    const interval = setInterval(checkConnectivity, pollingIntervals.connectivity);
-    return () => clearInterval(interval);
-  }, [pts2Url]);
+    const runCheck = () => {
+      void checkConnectivity();
+    };
+
+    const initial = setTimeout(runCheck, 0);
+    const interval = setInterval(runCheck, pollingIntervals.connectivity);
+
+    return () => {
+      clearTimeout(initial);
+      clearInterval(interval);
+    };
+  }, [checkConnectivity]);
 
   return (
     <ConnectivityContext.Provider value={{ apiStatus, pts2Status, checkConnectivity }}>

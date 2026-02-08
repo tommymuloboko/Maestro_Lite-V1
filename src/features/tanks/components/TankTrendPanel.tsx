@@ -1,14 +1,44 @@
+import { useState, useEffect } from 'react';
+import { Loader, Center } from '@mantine/core';
 import { TankTrendChart } from '@/components/charts/TankTrendChart';
-import { getMockTankTrend, getMockTankById } from '@/mocks';
+import type { Tank, TankTrendPoint } from '@/types/tanks';
+import { getApiService } from '@/lib/api/apiAdapter';
 
 interface TankTrendPanelProps {
   tankId: string;
 }
 
 export function TankTrendPanel({ tankId }: TankTrendPanelProps) {
-  const tank = getMockTankById(tankId);
-  const readings = getMockTankTrend(tankId);
-  const isLoading = false;
+  const [tank, setTank] = useState<Tank | null>(null);
+  const [readings, setReadings] = useState<TankTrendPoint[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const api = await getApiService();
+        const [tankData, trendData] = await Promise.all([
+          api.getTank(tankId),
+          api.getTankTrend(tankId),
+        ]);
+        setTank(tankData);
+        setReadings(trendData);
+      } catch (error) {
+        console.error('Failed to load tank trend:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadData();
+  }, [tankId]);
+
+  if (isLoading) {
+    return (
+      <Center h={200}>
+        <Loader size="md" />
+      </Center>
+    );
+  }
 
   const tankName = tank?.name ?? 'Tank';
   const capacity = tank?.capacity ?? 20000;

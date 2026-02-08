@@ -1,6 +1,7 @@
 import { SimpleGrid, Paper, Text, Badge, Stack } from '@mantine/core';
 import { IconGasStation } from '@tabler/icons-react';
-import type { Pump, PumpStatus } from '@/types/pumps';
+import type { PumpStatus } from '@/types/pumps';
+import { useLivePumps } from '@/hooks/useLivePumps';
 
 const statusColors: Record<PumpStatus, string> = {
   idle: 'gray',
@@ -11,34 +12,48 @@ const statusColors: Record<PumpStatus, string> = {
 };
 
 export function PumpStatusGrid() {
-  // TODO: Replace with real data from useLivePumps hook
-  const pumps: Pump[] = [
-    { id: '1', number: 1, name: 'Pump 1', status: 'idle', nozzles: [], lastUpdated: '' },
-    { id: '2', number: 2, name: 'Pump 2', status: 'fueling', nozzles: [], lastUpdated: '', currentTransaction: { volume: 23.5, amount: 587.5, fuelType: 'Petrol', startTime: '' } },
-    { id: '3', number: 3, name: 'Pump 3', status: 'idle', nozzles: [], lastUpdated: '' },
-    { id: '4', number: 4, name: 'Pump 4', status: 'offline', nozzles: [], lastUpdated: '' },
-  ];
+  const { data: pumps = [], isLoading, isError } = useLivePumps();
+  const safePumps = Array.isArray(pumps) ? pumps : [];
+
+  if (isLoading) {
+    return <Text size="sm" c="dimmed">Loading pump status...</Text>;
+  }
+
+  if (isError) {
+    return <Text size="sm" c="red">Unable to load pump status</Text>;
+  }
+
+  if (safePumps.length === 0) {
+    return <Text size="sm" c="dimmed">No pumps available</Text>;
+  }
 
   return (
     <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="sm">
-      {pumps.map((pump) => (
-        <Paper key={pump.id} p="sm" radius="md" withBorder>
-          <Stack gap="xs" align="center">
-            <IconGasStation size={24} />
-            <Text fw={500} size="sm">
-              Pump {pump.number}
-            </Text>
-            <Badge size="sm" color={statusColors[pump.status]}>
-              {pump.status}
-            </Badge>
-            {pump.currentTransaction && (
-              <Text size="xs" c="dimmed">
-                {pump.currentTransaction.volume.toFixed(1)} L
+      {safePumps.map((pump, index) => {
+        const status = pump.status as PumpStatus;
+        const badgeColor = statusColors[status] ?? 'gray';
+        const pumpNumber = Number.isFinite(pump.number) ? pump.number : index + 1;
+        const txVolume = pump.currentTransaction?.volume;
+
+        return (
+          <Paper key={pump.id ?? `pump-${index + 1}`} p="sm" radius="md" withBorder>
+            <Stack gap="xs" align="center">
+              <IconGasStation size={24} />
+              <Text fw={500} size="sm">
+                Pump {pumpNumber}
               </Text>
-            )}
-          </Stack>
-        </Paper>
-      ))}
+              <Badge size="sm" color={badgeColor}>
+                {pump.status ?? 'offline'}
+              </Badge>
+              {typeof txVolume === 'number' && Number.isFinite(txVolume) && (
+                <Text size="xs" c="dimmed">
+                  {txVolume.toFixed(1)} L
+                </Text>
+              )}
+            </Stack>
+          </Paper>
+        );
+      })}
     </SimpleGrid>
   );
 }

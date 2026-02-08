@@ -1,25 +1,18 @@
 import { Stack, Group, Text, Badge, ThemeIcon } from '@mantine/core';
 import { IconAlertTriangle, IconDroplet, IconGasStation } from '@tabler/icons-react';
-
-interface Alert {
-  id: string;
-  type: 'tank' | 'pump' | 'shift';
-  message: string;
-  severity: 'warning' | 'error' | 'critical';
-  timestamp: string;
-}
+import { formatRelative } from '@/lib/utils/dates';
+import { useDashboardAlerts } from '../api/dashboard.hooks';
 
 export function AlertsWidget() {
-  // TODO: Replace with real data from useAlerts hook
-  const alerts: Alert[] = [
-    {
-      id: '1',
-      type: 'tank',
-      message: 'Tank 2 (Diesel) is below 20% capacity',
-      severity: 'warning',
-      timestamp: '10 min ago',
-    },
-  ];
+  const { data: alerts = [], isLoading, isError } = useDashboardAlerts();
+
+  if (isLoading) {
+    return <Text size="sm" c="dimmed" ta="center" py="md">Loading alerts...</Text>;
+  }
+
+  if (isError) {
+    return <Text size="sm" c="red" ta="center" py="md">Unable to load alerts</Text>;
+  }
 
   if (alerts.length === 0) {
     return (
@@ -32,6 +25,11 @@ export function AlertsWidget() {
   const getIcon = (type: string) => {
     switch (type) {
       case 'tank':
+      case 'low':
+      case 'critical':
+      case 'overfill':
+      case 'offline':
+      case 'variance':
         return <IconDroplet size={16} />;
       case 'pump':
         return <IconGasStation size={16} />;
@@ -65,7 +63,7 @@ export function AlertsWidget() {
           <div style={{ flex: 1 }}>
             <Text size="sm">{alert.message}</Text>
             <Text size="xs" c="dimmed">
-              {alert.timestamp}
+              {formatRelative(alert.createdAt)}
             </Text>
           </div>
           <Badge size="xs" color={getSeverityColor(alert.severity)}>

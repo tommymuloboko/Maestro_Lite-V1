@@ -1,20 +1,33 @@
 import { Stack, Select, Button, Text, Alert, Paper, Group } from '@mantine/core';
 import { IconPrinter, IconInfoCircle, IconRefresh } from '@tabler/icons-react';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { notifications } from '@mantine/notifications';
+import { getAvailablePrinters } from '@/lib/utils/print';
+import { getSetting, setSetting } from '@/lib/storage/settings';
 
 export function PrintersPanel() {
-  const [defaultPrinter, setDefaultPrinter] = useState<string | null>(null);
-  const [receiptPrinter, setReceiptPrinter] = useState<string | null>(null);
+  const [defaultPrinter, setDefaultPrinter] = useState<string | null>(
+    () => getSetting<string | null>('printer_default', null)
+  );
+  const [receiptPrinter, setReceiptPrinter] = useState<string | null>(
+    () => getSetting<string | null>('printer_receipt', null)
+  );
+  const [availablePrinters, setAvailablePrinters] = useState<{ value: string; label: string }[]>([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // TODO: Replace with useAvailablePrinters hook
-  const availablePrinters = [
-    { value: 'printer1', label: 'HP LaserJet Pro' },
-    { value: 'printer2', label: 'Epson TM-T88VI (Receipt)' },
-  ];
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      const printers = await getAvailablePrinters();
+      setAvailablePrinters(printers.map((name) => ({ value: name, label: name })));
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, []);
 
-  const handleRefresh = () => {
-    // TODO: Refresh printer list
-  };
+  useEffect(() => {
+    void handleRefresh();
+  }, [handleRefresh]);
 
   return (
     <Stack gap="md" maw={500}>
@@ -29,6 +42,7 @@ export function PrintersPanel() {
           variant="subtle"
           leftSection={<IconRefresh size={14} />}
           onClick={handleRefresh}
+          loading={isRefreshing}
         >
           Refresh
         </Button>
@@ -66,7 +80,19 @@ export function PrintersPanel() {
         </Group>
       </Paper>
 
-      <Button>Save Printer Settings</Button>
+      <Button
+        onClick={() => {
+          setSetting('printer_default', defaultPrinter);
+          setSetting('printer_receipt', receiptPrinter);
+          notifications.show({
+            color: 'green',
+            title: 'Printer settings saved',
+            message: 'Default and receipt printer preferences were updated.',
+          });
+        }}
+      >
+        Save Printer Settings
+      </Button>
     </Stack>
   );
 }

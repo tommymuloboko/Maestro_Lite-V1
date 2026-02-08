@@ -1,11 +1,15 @@
-import { Button, Badge } from '@mantine/core';
+import { useCallback, useEffect, useState } from 'react';
+import { Button, Badge, Loader, Center } from '@mantine/core';
 import { IconPlus } from '@tabler/icons-react';
+import { notifications } from '@mantine/notifications';
 import { Screen } from '@/layouts/Screen';
 import { DataTable } from '@/components/common/DataTable';
 import { FiltersBar } from '@/components/common/FiltersBar';
 import { formatDateTime } from '@/lib/utils/dates';
 import type { Shift, ShiftStatus } from '@/types/shifts';
-import { mockShifts } from '@/mocks';
+import { getApiService } from '@/lib/api/apiAdapter';
+import { StartShiftModal } from '../components/StartShiftModal';
+import { useStartShift } from '../api/shifts.hooks';
 
 const statusColors: Record<ShiftStatus, string> = {
   active: 'blue',
@@ -15,8 +19,26 @@ const statusColors: Record<ShiftStatus, string> = {
 };
 
 export function ShiftsScreen() {
-  const shifts: Shift[] = mockShifts;
-  const isLoading = false;
+  const [shifts, setShifts] = useState<Shift[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [startShiftOpened, setStartShiftOpened] = useState(false);
+  const startShiftMutation = useStartShift();
+
+  const loadShifts = useCallback(async () => {
+    try {
+      const api = await getApiService();
+      const result = await api.getShifts();
+      setShifts(result.data);
+    } catch (error) {
+      console.error('Failed to load shifts:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadShifts();
+  }, [loadShifts]);
 
   const columns = [
     {
@@ -48,11 +70,21 @@ export function ShiftsScreen() {
     },
   ];
 
+  if (isLoading) {
+    return (
+      <Screen title="Shifts">
+        <Center h={300}>
+          <Loader size="lg" />
+        </Center>
+      </Screen>
+    );
+  }
+
   return (
     <Screen
       title="Shifts"
       actions={
-        <Button leftSection={<IconPlus size={16} />}>
+        <Button leftSection={<IconPlus size={16} />} onClick={() => setStartShiftOpened(true)}>
           Start Shift
         </Button>
       }
@@ -70,7 +102,7 @@ export function ShiftsScreen() {
               { value: 'closed', label: 'Closed' },
             ],
             value: null,
-            onChange: () => {},
+            onChange: () => { },
           },
         ]}
       />
@@ -81,6 +113,35 @@ export function ShiftsScreen() {
         isLoading={isLoading}
         getRowKey={(shift) => shift.id}
         emptyMessage="No shifts found"
+      />
+
+      <StartShiftModal
+        opened={startShiftOpened}
+        onClose={() => setStartShiftOpened(false)}
+        isLoading={startShiftMutation.isPending}
+        onSubmit={async ({ attendantId, pumpIds }) => {
+          try {
+            await startShiftMutation.mutateAsync({
+              attendantId,
+              pumpIds,
+              tagNumber: '',
+              openingReadings: [],
+            });
+            notifications.show({
+              color: 'green',
+              title: 'Shift started',
+              message: 'A new shift was started successfully.',
+            });
+            setStartShiftOpened(false);
+            await loadShifts();
+          } catch (error) {
+            notifications.show({
+              color: 'red',
+              title: 'Failed to start shift',
+              message: error instanceof Error ? error.message : 'Unknown error',
+            });
+          }
+        }}
       />
     </Screen>
   );

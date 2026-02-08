@@ -1,6 +1,8 @@
 import { Stack, Table, Button, Group, Text, Badge, Switch, ActionIcon } from '@mantine/core';
 import { IconPlus, IconEdit, IconTrash } from '@tabler/icons-react';
 import type { PaymentType } from '@/types/common';
+import { usePaymentTypes } from '../api/settings.hooks';
+import { paymentTypeLabels } from '@/config/stationDefaults';
 
 interface ConfiguredPaymentType {
   id: string;
@@ -10,13 +12,21 @@ interface ConfiguredPaymentType {
 }
 
 export function PaymentTypesPanel() {
-  // TODO: Replace with usePaymentTypes hook
-  const paymentTypes: ConfiguredPaymentType[] = [
-    { id: '1', code: 'cash', name: 'Cash', isActive: true },
-    { id: '2', code: 'card', name: 'Card', isActive: true },
-    { id: '3', code: 'mobile', name: 'Mobile Money', isActive: true },
-    { id: '4', code: 'credit', name: 'Credit', isActive: false },
-  ];
+  const { data: paymentTypesData = [], isLoading } = usePaymentTypes();
+  const paymentTypes: ConfiguredPaymentType[] = paymentTypesData.map((code) => ({
+    id: code,
+    code,
+    name: paymentTypeLabels[code],
+    isActive: true,
+  }));
+
+  if (isLoading) {
+    return (
+      <Text size="sm" c="dimmed">
+        Loading payment types...
+      </Text>
+    );
+  }
 
   return (
     <Stack gap="md">

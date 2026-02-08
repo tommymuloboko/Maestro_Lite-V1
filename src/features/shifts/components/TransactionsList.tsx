@@ -39,7 +39,7 @@ export function TransactionsList({ transactions }: TransactionsListProps) {
             <Table.Td>{formatMoney(tx.amount)}</Table.Td>
             <Table.Td>
               <Badge variant="light">
-                {paymentTypeLabels[tx.paymentType]}
+                {tx.paymentType ? paymentTypeLabels[tx.paymentType] : 'Unassigned'}
               </Badge>
             </Table.Td>
           </Table.Tr>

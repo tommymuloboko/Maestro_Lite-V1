@@ -2,8 +2,10 @@ export interface User {
   id: string;
   username: string;
   name: string;
-  role: 'admin' | 'manager' | 'attendant';
-  stationId: string;
+  role: string; // Allow any role from backend, not just fixed values
+  stationId?: string;
+  companyId?: string;
+  email?: string;
 }
 
 export interface LoginCredentials {

@@ -59,7 +59,8 @@ export function groupTransactionsByPaymentType(
 ): Record<string, number> {
   return transactions.reduce(
     (acc, tx) => {
-      acc[tx.paymentType] = (acc[tx.paymentType] ?? 0) + tx.amount;
+      const paymentType = tx.paymentType ?? 'unassigned';
+      acc[paymentType] = (acc[paymentType] ?? 0) + tx.amount;
       return acc;
     },
     {} as Record<string, number>

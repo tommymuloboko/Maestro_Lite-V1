@@ -14,6 +14,10 @@ import { queryClient } from './lib/query/queryClient'
 import { AuthProvider } from './context/AuthContext'
 import { StationConfigProvider } from './context/StationConfigContext'
 
+// Prevent default drag/drop behavior (prevents "dragEvent is not defined" error in Electron)
+document.addEventListener('dragover', (e) => e.preventDefault());
+document.addEventListener('drop', (e) => e.preventDefault());
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <MantineProvider theme={mantineTheme}>

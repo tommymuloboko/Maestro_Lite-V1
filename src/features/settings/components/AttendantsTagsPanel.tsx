@@ -1,11 +1,35 @@
-import { Stack, Table, Button, Group, Text, Badge, ActionIcon } from '@mantine/core';
+import { useState, useEffect } from 'react';
+import { Stack, Table, Button, Group, Text, Badge, ActionIcon, Loader, Center } from '@mantine/core';
 import { IconPlus, IconEdit, IconTrash } from '@tabler/icons-react';
-import type { Attendant, AttendantTag } from '@/types/attendants';
-import { mockAttendants, mockAttendantTags } from '@/mocks';
+import type { Attendant } from '@/types/attendants';
+import { getApiService } from '@/lib/api/apiAdapter';
 
 export function AttendantsTagsPanel() {
-  const attendants: Attendant[] = mockAttendants;
-  const tags: AttendantTag[] = mockAttendantTags;
+  const [attendants, setAttendants] = useState<Attendant[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const api = await getApiService();
+        const data = await api.getAttendants();
+        setAttendants(data);
+      } catch (error) {
+        console.error('Failed to load attendants:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <Center h={200}>
+        <Loader size="lg" />
+      </Center>
+    );
+  }
 
   return (
     <Stack gap="xl">
@@ -22,7 +46,6 @@ export function AttendantsTagsPanel() {
             <Table.Tr>
               <Table.Th>Name</Table.Th>
               <Table.Th>Employee Code</Table.Th>
-              <Table.Th>Tag</Table.Th>
               <Table.Th>Status</Table.Th>
               <Table.Th></Table.Th>
             </Table.Tr>
@@ -32,7 +55,6 @@ export function AttendantsTagsPanel() {
               <Table.Tr key={attendant.id}>
                 <Table.Td>{attendant.name}</Table.Td>
                 <Table.Td>{attendant.employeeCode}</Table.Td>
-                <Table.Td>{attendant.tag ?? '-'}</Table.Td>
                 <Table.Td>
                   <Badge color={attendant.isActive ? 'green' : 'gray'}>
                     {attendant.isActive ? 'Active' : 'Inactive'}
@@ -58,26 +80,6 @@ export function AttendantsTagsPanel() {
             No attendants configured
           </Text>
         )}
-      </div>
-
-      <div>
-        <Group justify="space-between" mb="md">
-          <Text fw={600}>Tags</Text>
-          <Button size="sm" variant="light" leftSection={<IconPlus size={14} />}>
-            Add Tag
-          </Button>
-        </Group>
-
-        <Group gap="sm">
-          {tags.map((tag) => (
-            <Badge key={tag.id} color={tag.color} size="lg">
-              {tag.name}
-            </Badge>
-          ))}
-          {tags.length === 0 && (
-            <Text size="sm" c="dimmed">No tags configured</Text>
-          )}
-        </Group>
       </div>
     </Stack>
   );
