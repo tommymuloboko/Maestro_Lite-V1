@@ -47,7 +47,7 @@ export function TankDetailsScreen() {
     <Screen title={tank.name}>
       <Grid>
         <Grid.Col span={{ base: 12, md: 4 }}>
-          <TankCard tank={tank} />
+          <TankCard tank={tank} showDetailsButton={false} />
         </Grid.Col>
 
         <Grid.Col span={{ base: 12, md: 8 }}>

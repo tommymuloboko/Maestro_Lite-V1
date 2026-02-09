@@ -7,8 +7,6 @@ export async function getStationConfig() {
   return {
     stationId: env.stationId,
     stationName: env.appName,
-    pts2Url: env.pts2Url,
-    apiBaseUrl: env.apiBaseUrl,
     currency: 'ZMW',
   };
 }

@@ -2,19 +2,12 @@ import { createContext, useContext, useState, useEffect, type ReactNode } from '
 import type { StationConfig } from '@/types/station';
 import {
   getStoredStationId,
-  getStoredPts2Url,
-  getStoredApiBaseUrl,
   getStoredTokens,
   getStoredUser,
   storeStationId,
-  storePts2Url,
-  storeApiBaseUrl,
 } from '@/lib/storage/secureStore';
 import { env } from '@/config/env';
 import { defaultCurrency } from '@/config/stationDefaults';
-
-// Backend API URL (local backend spawned by Electron)
-const API_BASE_URL = 'http://localhost:3000';
 
 interface StationConfigContextValue extends StationConfig {
   isConfigured: boolean;
@@ -29,8 +22,6 @@ export function StationConfigProvider({ children }: { children: ReactNode }) {
   const [config, setConfig] = useState<StationConfig>({
     stationId: getStoredStationId() ?? env.stationId,
     stationName: '',
-    pts2Url: getStoredPts2Url() ?? env.pts2Url,
-    apiBaseUrl: getStoredApiBaseUrl() ?? env.apiBaseUrl,
     currency: defaultCurrency.code,
   });
 
@@ -47,7 +38,7 @@ export function StationConfigProvider({ children }: { children: ReactNode }) {
 
       setIsLoading(true);
       try {
-        const response = await fetch(`${API_BASE_URL}/api/stations/${stationId}`, {
+        const response = await fetch(`${env.apiUrl}/stations/${stationId}`, {
           headers: {
             'Authorization': `Bearer ${tokens.accessToken}`,
             'Content-Type': 'application/json',
@@ -74,15 +65,13 @@ export function StationConfigProvider({ children }: { children: ReactNode }) {
     fetchStationName();
   }, [config.stationId]);
 
-  const isConfigured = Boolean(config.stationId && config.pts2Url);
+  const isConfigured = Boolean(config.stationId);
 
   const updateConfig = (updates: Partial<StationConfig>) => {
     setConfig((prev) => {
       const newConfig = { ...prev, ...updates };
 
       if (updates.stationId) storeStationId(updates.stationId);
-      if (updates.pts2Url) storePts2Url(updates.pts2Url);
-      if (updates.apiBaseUrl) storeApiBaseUrl(updates.apiBaseUrl);
 
       return newConfig;
     });
@@ -102,4 +91,3 @@ export function useStationConfigContext() {
   }
   return context;
 }
-

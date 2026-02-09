@@ -3,9 +3,9 @@ import { useStationConfig } from '@/hooks/useStationConfig';
 import { paths } from '../paths';
 
 export function RequireStationConfig() {
-  const { stationId, pts2Url } = useStationConfig();
+  const { stationId } = useStationConfig();
 
-  if (!stationId || !pts2Url) {
+  if (!stationId) {
     return <Navigate to={paths.settings} replace />;
   }
 

@@ -3,8 +3,6 @@ import { z } from 'zod';
 export const stationConfigSchema = z.object({
   stationId: z.string().min(1, 'Station ID is required'),
   stationName: z.string().min(1, 'Station name is required'),
-  pts2Url: z.string().url('Must be a valid URL'),
-  apiBaseUrl: z.string().url('Must be a valid URL'),
 });
 
 export const attendantSchema = z.object({

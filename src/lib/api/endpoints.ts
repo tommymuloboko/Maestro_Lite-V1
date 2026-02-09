@@ -1,6 +1,5 @@
 /**
- * API Endpoints – mirrors Node.js backend at localhost:3000/api
- * Swagger docs: http://localhost:3000/api-docs
+ * API Endpoints – mirrors backend at maestro-lite.onrender.com/api
  */
 export const endpoints = {
   // Auth
@@ -9,6 +8,14 @@ export const endpoints = {
     logout: '/auth/logout',
     refresh: '/auth/refresh',
     me: '/auth/me',
+  },
+
+  // Transactions (new unified endpoint)
+  transactions: {
+    list: '/transactions',
+    get: (id: string) => `/transactions/${id}`,
+    summary: (stationId: string) => `/transactions/summary/${stationId}`,
+    verifiedSummary: '/transactions/verified/summary',
   },
 
   // Attendant Shifts (station-scoped)
@@ -29,13 +36,23 @@ export const endpoints = {
     verificationSummary: (id: string) => `/attendant-shifts/${id}/verification`,
   },
 
-  // Fuel Transactions
+  // Fuel Transactions (legacy endpoints - may be replaced by /transactions)
   fuelSales: {
     list: '/fuel-sales',
     get: (id: string) => `/fuel-sales/${id}`,
     summary: '/fuel-sales/summary',
     raw: '/fuel-sales/raw',
     verified: '/fuel-sales/verified',
+  },
+
+  // Attendants (new top-level endpoint)
+  attendants: {
+    list: '/attendants',
+    get: (id: string) => `/attendants/${id}`,
+    create: '/attendants',
+    update: (id: string) => `/attendants/${id}`,
+    delete: (id: string) => `/attendants/${id}`,
+    tags: (attendantId: string) => `/attendants/${attendantId}/tags`,
   },
 
   // Pumps (PTS system)
@@ -62,7 +79,7 @@ export const endpoints = {
     pumpTotals: '/reports/pump-totals',
   },
 
-  // Settings
+  // Settings (legacy endpoints)
   settings: {
     station: '/settings/station',
     attendants: '/settings/attendants',

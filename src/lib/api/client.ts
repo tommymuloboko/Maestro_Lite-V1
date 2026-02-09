@@ -10,7 +10,7 @@ interface RequestOptions extends RequestInit {
 async function request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
   const { params, skipAuthRedirect, ...init } = options;
 
-  let url = `${env.apiBaseUrl}${endpoint}`;
+  let url = `${env.apiUrl}${endpoint}`;
 
   if (params) {
     const searchParams = new URLSearchParams();

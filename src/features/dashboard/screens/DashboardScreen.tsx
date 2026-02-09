@@ -11,13 +11,11 @@ import {
   IconRoute,
   IconShoppingCartDollar,
 } from '@tabler/icons-react';
-import type { FuelSalesFiltersDto } from '@/lib/api/dto';
 import type { DateRange } from '@/types/common';
-import type { FuelTransaction } from '@/types/fuel';
-import { paymentTypeLabels } from '@/config/stationDefaults';
+import type { RawFuelTransaction } from '@/types/fuel';
 import { formatMoney } from '@/lib/utils/money';
 import { paths } from '@/routes/paths';
-import { useFuelSales } from '@/features/fuelSales/api/fuelSales.hooks';
+import { useTransactions, useTransactionsSummary } from '@/features/fuelSales/api/transactions.hooks';
 import { useLivePumps } from '@/hooks/useLivePumps';
 import { useDashboardAlerts, useDashboardSummary } from '../api/dashboard.hooks';
 import { DashboardQuickActions, type DashboardQuickActionItem } from '../components/DashboardQuickActions';
@@ -80,7 +78,7 @@ function resolveDateRange(preset: DatePreset, customRange: DateRange) {
   return { start: startOfDay(addDays(now, -6)), end: endOfDay(now) };
 }
 
-function buildSalesTrend(transactions: FuelTransaction[], preset: DatePreset, start: Date, end: Date) {
+function buildSalesTrend(transactions: RawFuelTransaction[], preset: DatePreset, start: Date, end: Date) {
   const values: number[] = [];
   const labels: string[] = [];
   const startMs = start.getTime();
@@ -90,7 +88,7 @@ function buildSalesTrend(transactions: FuelTransaction[], preset: DatePreset, st
     const hourlyValues = new Array<number>(24).fill(0);
 
     for (const tx of transactions) {
-      const txTime = safeTimestamp(tx.timestamp);
+      const txTime = safeTimestamp(tx.time);
       if (txTime < startMs || txTime > endMs) continue;
       const hour = new Date(txTime).getHours();
       hourlyValues[hour] += tx.amount ?? 0;
@@ -120,7 +118,7 @@ function buildSalesTrend(transactions: FuelTransaction[], preset: DatePreset, st
   });
 
   for (const tx of transactions) {
-    const txTime = safeTimestamp(tx.timestamp);
+    const txTime = safeTimestamp(tx.time);
     if (txTime < startMs || txTime > endMs) continue;
 
     const key = toDayKey(new Date(txTime));
@@ -133,34 +131,34 @@ function buildSalesTrend(transactions: FuelTransaction[], preset: DatePreset, st
   return { labels, values };
 }
 
-function buildVerifiedPaymentBreakdown(transactions: FuelTransaction[]) {
+function buildVerifiedPaymentBreakdown(transactions: RawFuelTransaction[]) {
   const totals = new Map<string, number>();
 
   for (const tx of transactions) {
-    if (!tx.isVerified || !tx.paymentType) continue;
-    const paymentLabel = paymentTypeLabels[tx.paymentType] ?? tx.paymentType;
-    totals.set(paymentLabel, (totals.get(paymentLabel) ?? 0) + (tx.amount ?? 0));
+    if (!tx.isVerified) continue;
+    // For now, count all verified as cash until we have payment type in raw transactions
+    totals.set('Verified', (totals.get('Verified') ?? 0) + (tx.amount ?? 0));
   }
 
   return [...totals.entries()].map(([name, value]) => ({ name, value }));
 }
 
-function mapRecentTransactions(transactions: FuelTransaction[]): RecentTransactionRow[] {
+function mapRecentTransactions(transactions: RawFuelTransaction[]): RecentTransactionRow[] {
   return [...transactions]
-    .sort((a, b) => safeTimestamp(b.timestamp) - safeTimestamp(a.timestamp))
+    .sort((a, b) => safeTimestamp(b.time) - safeTimestamp(a.time))
     .slice(0, 5)
     .map((tx) => ({
       id: tx.id,
-      time: new Date(tx.timestamp).toLocaleString('en-US', {
+      time: new Date(tx.time).toLocaleString('en-US', {
         month: 'short',
         day: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
       }),
-      reference: tx.transactionNumber || tx.id.slice(-8),
+      reference: tx.transactionId?.toString() || tx.id.slice(-8),
       pump: `Pump ${tx.pumpId}`,
       amount: formatMoney(tx.amount ?? 0),
-      payment: tx.paymentType ? paymentTypeLabels[tx.paymentType] : 'Unassigned',
+      payment: tx.isVerified ? 'Verified' : 'Unassigned',
       status: tx.isVerified ? 'verified' : 'unverified',
     }));
 }
@@ -175,39 +173,26 @@ export default function DashboardScreen() {
 
   const dateRange = useMemo(() => resolveDateRange(preset, customRange), [preset, customRange]);
 
-  const chartFilters = useMemo<FuelSalesFiltersDto>(
-    () => ({
-      startDate: dateRange.start.toISOString(),
-      endDate: dateRange.end.toISOString(),
-      page: 1,
-      pageSize: 500,
-    }),
-    [dateRange.end, dateRange.start]
-  );
-
-  const latestFilters = useMemo<FuelSalesFiltersDto>(
-    () => ({
-      page: 1,
-      pageSize: 100,
-    }),
-    []
-  );
-
   const { data: summary } = useDashboardSummary();
   const { data: alertsData = [] } = useDashboardAlerts();
   const { data: pumpsData = [] } = useLivePumps();
-  const { data: rangeSalesData, isLoading: isRangeSalesLoading } = useFuelSales(chartFilters);
-  const { data: latestSalesData, isLoading: isLatestSalesLoading } = useFuelSales(latestFilters);
+  const { data: txData, isLoading: isTransactionsLoading } = useTransactions({ limit: 500 });
+  const { data: txSummary } = useTransactionsSummary();
 
   const rangeTransactions = useMemo(() => {
-    const data = rangeSalesData?.data;
-    return Array.isArray(data) ? data : [];
-  }, [rangeSalesData]);
+    const transactions = txData?.transactions ?? [];
+    const startMs = dateRange.start.getTime();
+    const endMs = dateRange.end.getTime();
+    // Filter by date range
+    return transactions.filter((tx) => {
+      const txTime = new Date(tx.time).getTime();
+      return txTime >= startMs && txTime <= endMs;
+    });
+  }, [txData, dateRange.start, dateRange.end]);
 
   const latestTransactions = useMemo(() => {
-    const data = latestSalesData?.data;
-    return Array.isArray(data) ? data : [];
-  }, [latestSalesData]);
+    return txData?.transactions?.slice(0, 100) ?? [];
+  }, [txData]);
 
   const totalFuelSales = useMemo(() => {
     const total = rangeTransactions.reduce((sum, tx) => sum + (tx.amount ?? 0), 0);
@@ -372,7 +357,7 @@ export default function DashboardScreen() {
             <SalesTrendChart
               labels={trendSeries.labels}
               values={trendSeries.values}
-              loading={isRangeSalesLoading}
+              loading={isTransactionsLoading}
             />
           </Paper>
         </Grid.Col>
@@ -381,7 +366,7 @@ export default function DashboardScreen() {
             <Text fw={600} mb="sm">
               Verified Fuel Txn by Payment Type
             </Text>
-            <VerifiedPaymentPieChart data={paymentBreakdown} loading={isRangeSalesLoading} />
+            <VerifiedPaymentPieChart data={paymentBreakdown} loading={isTransactionsLoading} />
           </Paper>
         </Grid.Col>
       </Grid>
@@ -390,7 +375,7 @@ export default function DashboardScreen() {
         <Grid.Col span={12}>
           <RecentSalesTable
             rows={recentRows}
-            loading={isLatestSalesLoading}
+            loading={isTransactionsLoading}
             onViewAll={() => navigate(paths.fuelSales)}
           />
         </Grid.Col>

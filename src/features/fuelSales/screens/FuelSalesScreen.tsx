@@ -1,65 +1,56 @@
-import { useState, useEffect } from 'react';
-import { Button, Loader, Center } from '@mantine/core';
-import { IconDownload } from '@tabler/icons-react';
+import { useMemo, useState } from 'react';
+import { Button, Group, Text, Badge, Stack, Loader, Center } from '@mantine/core';
+import { IconDownload, IconRefresh } from '@tabler/icons-react';
 import { Screen } from '@/layouts/Screen';
 import { DataTable } from '@/components/common/DataTable';
 import { FuelSalesFilters } from '../components/FuelSalesFilters';
-import type { FuelTransaction } from '@/types/fuel';
-import { formatMoney, formatVolume } from '@/lib/utils/money';
+import type { RawFuelTransaction } from '@/types/fuel';
+import { formatMoney } from '@/lib/utils/money';
 import { formatDateTime } from '@/lib/utils/dates';
-import { paymentTypeLabels } from '@/config/stationDefaults';
-import { getApiService } from '@/lib/api/apiAdapter';
+import { useTransactions, useTransactionsSummary } from '../api/transactions.hooks';
 
 export function FuelSalesScreen() {
-  const [transactions, setTransactions] = useState<FuelTransaction[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [filters] = useState({ limit: 100, offset: 0 });
 
-  useEffect(() => {
-    async function loadTransactions() {
-      try {
-        const api = await getApiService();
-        const result = await api.getFuelSales();
-        setTransactions(result.data);
-      } catch (error) {
-        console.error('Failed to load fuel sales:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    loadTransactions();
-  }, []);
+  const { data, isLoading, refetch, isFetching } = useTransactions(filters);
+  const { data: summary } = useTransactionsSummary();
+
+  const transactions = useMemo(() => data?.transactions ?? [], [data]);
 
   const columns = [
     {
-      key: 'timestamp',
+      key: 'time',
       header: 'Time',
-      render: (tx: FuelTransaction) => formatDateTime(tx.timestamp),
+      render: (tx: RawFuelTransaction) => formatDateTime(tx.time),
     },
     {
       key: 'pump',
       header: 'Pump',
-      render: (tx: FuelTransaction) => tx.pumpId,
+      render: (tx: RawFuelTransaction) => `Pump ${tx.pumpId}`,
     },
     {
-      key: 'fuelType',
-      header: 'Fuel',
-      render: (tx: FuelTransaction) => tx.fuelType,
-    },
-    {
-      key: 'volume',
-      header: 'Volume',
-      render: (tx: FuelTransaction) => formatVolume(tx.volume),
+      key: 'tagNumber',
+      header: 'Tag',
+      render: (tx: RawFuelTransaction) => tx.tagNumber || '-',
     },
     {
       key: 'amount',
       header: 'Amount',
-      render: (tx: FuelTransaction) => formatMoney(tx.amount),
+      render: (tx: RawFuelTransaction) => formatMoney(tx.amount),
     },
     {
-      key: 'payment',
-      header: 'Payment',
-      render: (tx: FuelTransaction) =>
-        tx.paymentType ? paymentTypeLabels[tx.paymentType] : 'Unassigned',
+      key: 'currency',
+      header: 'Currency',
+      render: (tx: RawFuelTransaction) => tx.currency,
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (tx: RawFuelTransaction) => (
+        <Badge color={tx.isVerified ? 'green' : 'orange'} size="sm">
+          {tx.isVerified ? 'Verified' : 'Unverified'}
+        </Badge>
+      ),
     },
   ];
 
@@ -77,20 +68,53 @@ export function FuelSalesScreen() {
     <Screen
       title="Fuel Sales"
       actions={
-        <Button variant="light" leftSection={<IconDownload size={16} />}>
-          Export CSV
-        </Button>
+        <Group gap="xs">
+          <Button
+            variant="light"
+            leftSection={<IconRefresh size={16} />}
+            onClick={() => refetch()}
+            loading={isFetching}
+          >
+            Refresh
+          </Button>
+          <Button variant="light" leftSection={<IconDownload size={16} />}>
+            Export CSV
+          </Button>
+        </Group>
       }
     >
-      <FuelSalesFilters />
+      <Stack gap="md">
+        {/* Summary Stats */}
+        {summary && (
+          <Group gap="lg">
+            <Text size="sm" c="dimmed">
+              Total: <Text span fw={600}>{summary.totalCount}</Text> transactions
+            </Text>
+            <Text size="sm" c="dimmed">
+              Verified: <Text span fw={600} c="green">{formatMoney(summary.verifiedTotal)}</Text>
+            </Text>
+            <Text size="sm" c="dimmed">
+              Unverified: <Text span fw={600} c="orange">{formatMoney(summary.unverifiedTotal)}</Text>
+            </Text>
+          </Group>
+        )}
 
-      <DataTable
-        data={transactions}
-        columns={columns}
-        isLoading={isLoading}
-        getRowKey={(tx) => tx.id}
-        emptyMessage="No transactions found"
-      />
+        <FuelSalesFilters />
+
+        <DataTable
+          data={transactions}
+          columns={columns}
+          isLoading={isLoading}
+          getRowKey={(tx) => tx.id}
+          emptyMessage="No transactions found"
+        />
+
+        {data && (
+          <Text size="xs" c="dimmed" ta="center">
+            Showing {transactions.length} of {data.count} transactions
+          </Text>
+        )}
+      </Stack>
     </Screen>
   );
 }

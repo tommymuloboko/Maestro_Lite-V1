@@ -29,8 +29,15 @@ export function TanksScreen() {
       try {
         const api = await getApiService();
         const data = await api.getTanks();
-        // Defensive: ensure we always have an array
-        setTanks(Array.isArray(data) ? data : []);
+        // Defensive: ensure nested arrays exist even if backend payload is partial.
+        const normalized = Array.isArray(data)
+          ? data.map((tank) => ({
+            ...tank,
+            deliveries: Array.isArray(tank.deliveries) ? tank.deliveries : [],
+            alarms: Array.isArray(tank.alarms) ? tank.alarms : [],
+          }))
+          : [];
+        setTanks(normalized);
       } catch (error) {
         console.error('Failed to load tanks:', error);
         setTanks([]);
@@ -49,7 +56,10 @@ export function TanksScreen() {
     );
   }
 
-  const totalAlarms = tanks.reduce((sum, t) => sum + t.alarms.length, 0);
+  const totalAlarms = tanks.reduce(
+    (sum, tank) => sum + (Array.isArray(tank.alarms) ? tank.alarms.length : 0),
+    0
+  );
   const isSimulator = env.useMonitoringSimulator || tanks.some((t) => t.atgSource === 'SIMULATOR');
 
   return (

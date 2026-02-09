@@ -21,13 +21,22 @@ export const queryKeys = {
     detail: (id: string) => [...queryKeys.shifts.details(), id] as const,
   },
 
-  // Fuel Sales
+  // Fuel Sales (legacy)
   fuelSales: {
     all: ['fuelSales'] as const,
     lists: () => [...queryKeys.fuelSales.all, 'list'] as const,
     list: (filters: unknown) => [...queryKeys.fuelSales.lists(), filters] as const,
     detail: (id: string) => [...queryKeys.fuelSales.all, 'detail', id] as const,
     summary: (filters: unknown) => [...queryKeys.fuelSales.all, 'summary', filters] as const,
+  },
+
+  // Transactions (new /api/transactions endpoint)
+  transactions: {
+    all: ['transactions'] as const,
+    lists: () => [...queryKeys.transactions.all, 'list'] as const,
+    list: (filters: unknown) => [...queryKeys.transactions.lists(), filters] as const,
+    summary: (stationId?: string) => [...queryKeys.transactions.all, 'summary', stationId] as const,
+    verifiedSummary: (stationId?: string) => [...queryKeys.transactions.all, 'verifiedSummary', stationId] as const,
   },
 
   // Pumps

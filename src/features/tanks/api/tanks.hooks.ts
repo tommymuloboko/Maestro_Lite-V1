@@ -41,5 +41,6 @@ export function useTankAlerts() {
   return useQuery({
     queryKey: queryKeys.tanks.alerts(),
     queryFn: getTankAlerts,
+    select: (data) => (Array.isArray(data) ? data : []),
   });
 }

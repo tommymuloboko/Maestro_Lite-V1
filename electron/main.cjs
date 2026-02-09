@@ -4,13 +4,10 @@
  * This is the entry point for the Electron desktop app.
  * In development it loads from the Vite dev server (localhost:5173).
  * In production it loads the built files from the dist/ folder.
- *
- * The backend is spawned as a child process and managed by backendManager.
  */
 
 const { app, BrowserWindow, shell, ipcMain, screen } = require('electron');
 const path = require('path');
-const backendManager = require('./backendManager.cjs');
 
 // ─── Environment ──────────────────────────────────────────────
 const isDev = !app.isPackaged;
@@ -110,57 +107,16 @@ ipcMain.handle('window:maximize', () => {
 ipcMain.handle('window:close', () => mainWindow?.close());
 ipcMain.handle('window:isMaximized', () => mainWindow?.isMaximized() ?? false);
 
-// ─── Backend IPC Handlers ────────────────────────────────────
-
-ipcMain.handle('backend:getStatus', () => backendManager.getStatus());
-ipcMain.handle('backend:getStatusDetails', () => backendManager.getStatusDetails());
-ipcMain.handle('backend:restart', async () => {
-  await backendManager.restart(app);
-  return backendManager.getStatus();
-});
-
-// Forward backend status changes to renderer
-backendManager.on('status-changed', ({ newStatus }) => {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('backend:status-changed', newStatus);
-  }
-});
-
-// Forward backend logs to renderer (optional, for debugging)
-backendManager.on('log', (logEntry) => {
-  if (mainWindow && !mainWindow.isDestroyed() && isDev) {
-    mainWindow.webContents.send('backend:log', logEntry);
-  }
-});
-
 // ─── App lifecycle ────────────────────────────────────────────
 
-// Startup sequence: spawn backend, then create window
-app.whenReady().then(async () => {
-  console.log('[Main] App ready, starting backend...');
-
-  try {
-    // Spawn backend and wait for it to be healthy
-    await backendManager.spawn(app);
-    console.log('[Main] Backend is online, creating window...');
-  } catch (err) {
-    console.error('[Main] Backend failed to start:', err.message);
-    // Continue anyway — app will show degraded status
-    // User can retry via UI or the app can work in limited mode
-  }
-
+app.whenReady().then(() => {
+  console.log('[Main] App ready, creating window...');
   createWindow();
 });
 
 app.on('window-all-closed', () => {
   // On macOS apps stay active until Cmd+Q, but Maestro is Windows-only
   app.quit();
-});
-
-app.on('before-quit', () => {
-  // Stop backend gracefully when app is closing
-  console.log('[Main] App quitting, stopping backend...');
-  backendManager.stop();
 });
 
 app.on('activate', () => {

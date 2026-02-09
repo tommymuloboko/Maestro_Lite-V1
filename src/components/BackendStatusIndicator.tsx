@@ -1,65 +1,42 @@
-import { useState, useEffect } from 'react';
 import { Badge, Tooltip } from '@mantine/core';
 import { IconWifi, IconWifiOff, IconLoader } from '@tabler/icons-react';
-import type { BackendStatus } from '@/types/electron';
+import { useConnectivity } from '@/hooks/useConnectivity';
 
 /**
- * Shows the backend connection status in the header.
- * Uses Electron IPC to listen for status changes.
+ * Shows the API connection status in the header.
+ * Uses ConnectivityContext to check API health.
  */
 export default function BackendStatusIndicator() {
-    const [status, setStatus] = useState<BackendStatus>('OFFLINE');
-
-    useEffect(() => {
-        // Only works in Electron environment
-        if (!window.electronAPI) {
-            return;
-        }
-
-        // Get initial status
-        window.electronAPI.getBackendStatus().then(setStatus);
-
-        // Listen for status changes
-        const unsubscribe = window.electronAPI.onBackendStatusChange(setStatus);
-
-        return () => {
-            unsubscribe();
-        };
-    }, []);
-
-    // Don't render in browser (non-Electron)
-    if (!window.electronAPI) {
-        return null;
-    }
+    const { apiStatus } = useConnectivity();
 
     const config = {
-        ONLINE: {
+        connected: {
             color: 'green',
             label: 'Online',
             icon: IconWifi,
-            tooltip: 'Backend connected',
+            tooltip: 'API connected',
         },
-        OFFLINE: {
+        disconnected: {
             color: 'red',
             label: 'Offline',
             icon: IconWifiOff,
-            tooltip: 'Backend disconnected',
+            tooltip: 'API disconnected',
         },
-        STARTING: {
+        connecting: {
             color: 'yellow',
-            label: 'Starting',
+            label: 'Connecting',
             icon: IconLoader,
-            tooltip: 'Backend starting...',
+            tooltip: 'Connecting to API...',
         },
-        DEGRADED: {
+        error: {
             color: 'orange',
-            label: 'Degraded',
-            icon: IconWifi,
-            tooltip: 'Backend connection unstable',
+            label: 'Error',
+            icon: IconWifiOff,
+            tooltip: 'API connection error',
         },
     };
 
-    const { color, label, icon: Icon, tooltip } = config[status];
+    const { color, label, icon: Icon, tooltip } = config[apiStatus];
 
     return (
         <Tooltip label={tooltip} withArrow>

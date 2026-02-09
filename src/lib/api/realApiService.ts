@@ -1,5 +1,5 @@
 /**
- * Real API Service — calls the Node.js backend at localhost:3000/api.
+ * Real API Service — calls the cloud backend API.
  *
  * Uses the shared `api` client (fetch wrapper with auth headers).
  */
@@ -33,6 +33,12 @@ import type {
   FuelSalesFiltersDto,
   ReportFiltersDto,
   LoginResponseDto,
+  TransactionsResponseDto,
+  TransactionsSummaryDto,
+  VerifiedSummaryDto,
+  AttendantsResponseDto,
+  AttendantResponseDto,
+  CreateAttendantRequestDto,
 } from './dto';
 
 import { api } from './client';
@@ -57,6 +63,7 @@ function parseExpiresIn(expiresIn: string): number {
 }
 
 // ─── Real API Service ────────────────────────────────────────
+
 
 export class RealApiService implements IApiService {
   // ── Auth ───────────────────────────────────────────────────
@@ -298,7 +305,17 @@ export class RealApiService implements IApiService {
   }
 
   async getTankAlerts(): Promise<TankAlert[]> {
-    return api.get<TankAlert[]>(endpoints.tanks.alerts);
+    const payload = await api.get<TankAlert[] | { data?: TankAlert[] }>(endpoints.tanks.alerts);
+
+    if (Array.isArray(payload)) {
+      return payload;
+    }
+
+    if (payload && typeof payload === 'object' && Array.isArray(payload.data)) {
+      return payload.data;
+    }
+
+    return [];
   }
 
   // ── Reports ────────────────────────────────────────────────
@@ -371,29 +388,166 @@ export class RealApiService implements IApiService {
     return api.get<Shift[]>(endpoints.dashboard.recentShifts);
   }
 
-  // ── Settings – Attendants ──────────────────────────────────
+  // ── Transactions (new /api/transactions endpoint) ──────────
+
+  async getTransactions(params?: {
+    station_id?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ count: number; transactions: RawFuelTransaction[] }> {
+    const user = getStoredUser();
+    const stationId = params?.station_id || user?.stationId || getStoredStationId();
+
+    const res = await api.get<TransactionsResponseDto>(endpoints.transactions.list, {
+      params: {
+        station_id: stationId,
+        limit: params?.limit ?? 100,
+        offset: params?.offset ?? 0,
+      },
+    });
+
+    // Map snake_case to camelCase
+    const transactions: RawFuelTransaction[] = (res.transactions || []).map((t) => ({
+      id: t.id,
+      companyId: t.company_id,
+      stationId: t.station_id,
+      shiftId: t.shift_id || '',
+      attendantId: t.attendant_id || '',
+      tagNumber: t.tag_number,
+      fullName: t.full_name || '',
+      pumpId: t.pump_id,
+      time: t.time,
+      amount: parseFloat(t.amount),
+      currency: t.currency,
+      transactionId: t.transaction_id,
+      isVerified: t.is_verified,
+      createdAt: t.created_at,
+    }));
+
+    return { count: res.count, transactions };
+  }
+
+  async getTransactionsSummary(stationId?: string): Promise<{
+    verifiedTotal: number;
+    unverifiedTotal: number;
+    totalCount: number;
+    verifiedCount: number;
+    unverifiedCount: number;
+    currency: string;
+  }> {
+    const user = getStoredUser();
+    const resolvedStationId = stationId || user?.stationId || getStoredStationId();
+
+    if (!resolvedStationId) {
+      throw new Error('Station ID is required');
+    }
+
+    const res = await api.get<TransactionsSummaryDto>(endpoints.transactions.summary(resolvedStationId));
+
+    const summary = res.summary?.[0] || {
+      verified_total: '0',
+      unverified_total: '0',
+      total_count: '0',
+      verified_count: '0',
+      unverified_count: '0',
+      currency: 'ZMW',
+    };
+
+    return {
+      verifiedTotal: parseFloat(summary.verified_total),
+      unverifiedTotal: parseFloat(summary.unverified_total),
+      totalCount: parseInt(summary.total_count, 10),
+      verifiedCount: parseInt(summary.verified_count, 10),
+      unverifiedCount: parseInt(summary.unverified_count, 10),
+      currency: summary.currency,
+    };
+  }
+
+  async getVerifiedTransactionsSummary(stationId?: string): Promise<{
+    byPaymentType: Array<{
+      paymentType: string;
+      count: number;
+      totalAmount: number;
+      currency: string;
+    }>;
+    totalAmount: number;
+    totalCount: number;
+  }> {
+    const user = getStoredUser();
+    const resolvedStationId = stationId || user?.stationId || getStoredStationId();
+
+    const res = await api.get<VerifiedSummaryDto>(endpoints.transactions.verifiedSummary, {
+      params: { station_id: resolvedStationId },
+    });
+
+    return {
+      byPaymentType: (res.summary?.by_payment_type || []).map((p) => ({
+        paymentType: p.payment_type,
+        count: parseInt(p.count, 10),
+        totalAmount: parseFloat(p.total_amount),
+        currency: p.currency,
+      })),
+      totalAmount: res.summary?.total_amount || 0,
+      totalCount: res.summary?.total_count || 0,
+    };
+  }
+
+  // ── Attendants (new /api/attendants endpoint) ──────────────
 
   async getAttendants(): Promise<Attendant[]> {
-    return api.get<Attendant[]>(endpoints.settings.attendants);
+    const res = await api.get<AttendantsResponseDto>(endpoints.attendants.list, {
+      params: { limit: 100, offset: 0 },
+    });
+
+    // Map snake_case to camelCase
+    return (res.attendants || []).map((a) => ({
+      id: a.id,
+      companyId: a.company_id,
+      stationId: a.station_id,
+      employeeId: a.employee_id,
+      attendantNo: a.attendant_no,
+      name: a.attendant_no, // Use attendant_no as name if full_name not available
+      employeeCode: a.attendant_no,
+      phone: a.phone,
+      isActive: a.is_active,
+      createdAt: a.created_at,
+      updatedAt: a.created_at,
+    }));
   }
 
   async getAttendant(id: string): Promise<Attendant> {
-    return api.get<Attendant>(endpoints.settings.attendant(id));
+    return api.get<Attendant>(endpoints.attendants.get(id));
   }
 
-  async createAttendant(data: Partial<Attendant>): Promise<Attendant> {
-    return api.post<Attendant>(endpoints.settings.attendants, data);
+  async createAttendant(data: CreateAttendantRequestDto): Promise<Attendant> {
+    const res = await api.post<AttendantResponseDto>(endpoints.attendants.create, data);
+
+    const a = res.attendant;
+    return {
+      id: a.id,
+      companyId: a.company_id,
+      stationId: a.station_id,
+      employeeId: a.employee_id,
+      attendantNo: a.attendant_no,
+      name: a.attendant_no,
+      employeeCode: a.attendant_no,
+      phone: a.phone,
+      isActive: a.is_active,
+      createdAt: a.created_at,
+      updatedAt: a.created_at,
+    };
   }
 
   async updateAttendant(id: string, data: Partial<Attendant>): Promise<Attendant> {
-    return api.put<Attendant>(endpoints.settings.attendant(id), data);
+    return api.put<Attendant>(endpoints.attendants.update(id), data);
   }
 
   async deleteAttendant(id: string): Promise<void> {
-    await api.delete(endpoints.settings.attendant(id));
+    await api.delete(endpoints.attendants.delete(id));
   }
 
   async getAttendantTags(attendantId: string): Promise<AttendantRfidTag[]> {
-    return api.get<AttendantRfidTag[]>(`${endpoints.settings.attendant(attendantId)}/tags`);
+    return api.get<AttendantRfidTag[]>(endpoints.attendants.tags(attendantId));
   }
 }
+

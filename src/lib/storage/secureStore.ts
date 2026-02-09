@@ -6,8 +6,6 @@ const STORAGE_KEYS = {
   TOKEN_EXPIRES: 'maestro_token_expires',
   USER: 'maestro_user',
   STATION_ID: 'maestro_station_id',
-  PTS2_URL: 'maestro_pts2_url',
-  API_BASE_URL: 'maestro_api_base_url',
 } as const;
 
 // Token storage
@@ -61,22 +59,6 @@ export function storeStationId(stationId: string): void {
 
 export function getStoredStationId(): string | null {
   return localStorage.getItem(STORAGE_KEYS.STATION_ID);
-}
-
-export function storePts2Url(pts2Url: string): void {
-  localStorage.setItem(STORAGE_KEYS.PTS2_URL, pts2Url);
-}
-
-export function getStoredPts2Url(): string | null {
-  return localStorage.getItem(STORAGE_KEYS.PTS2_URL);
-}
-
-export function storeApiBaseUrl(apiBaseUrl: string): void {
-  localStorage.setItem(STORAGE_KEYS.API_BASE_URL, apiBaseUrl);
-}
-
-export function getStoredApiBaseUrl(): string | null {
-  return localStorage.getItem(STORAGE_KEYS.API_BASE_URL);
 }
 
 export function clearAllStorage(): void {

@@ -22,7 +22,8 @@ function getSeverityMeta(severity: string) {
 
 export function TankAlertsPanel({ tankId }: TankAlertsPanelProps) {
   const { data: allAlerts = [], isLoading } = useTankAlerts();
-  const alerts = allAlerts.filter((alert) => alert.tankId === tankId);
+  const safeAlerts = Array.isArray(allAlerts) ? allAlerts : [];
+  const alerts = safeAlerts.filter((alert) => alert.tankId === tankId);
 
   if (isLoading) {
     return (

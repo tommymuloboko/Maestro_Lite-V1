@@ -13,6 +13,7 @@ import { mantineTheme } from './theme/mantineTheme'
 import { queryClient } from './lib/query/queryClient'
 import { AuthProvider } from './context/AuthContext'
 import { StationConfigProvider } from './context/StationConfigContext'
+import { ConnectivityProvider } from './context/ConnectivityContext'
 
 // Prevent default drag/drop behavior (prevents "dragEvent is not defined" error in Electron)
 document.addEventListener('dragover', (e) => e.preventDefault());
@@ -25,10 +26,13 @@ createRoot(document.getElementById('root')!).render(
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <StationConfigProvider>
-            <RouterProvider router={router} />
+            <ConnectivityProvider>
+              <RouterProvider router={router} />
+            </ConnectivityProvider>
           </StationConfigProvider>
         </AuthProvider>
       </QueryClientProvider>
     </MantineProvider>
   </StrictMode>,
 )
+

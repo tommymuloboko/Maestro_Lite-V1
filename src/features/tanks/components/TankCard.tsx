@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Paper, Group, Text, Badge, Box, SimpleGrid, Loader, Center } from '@mantine/core';
+import { useNavigate } from 'react-router-dom';
+import { Paper, Group, Text, Badge, Box, SimpleGrid, Loader, Center, Button } from '@mantine/core';
 import { IconDroplet, IconTemperature, IconTruckDelivery } from '@tabler/icons-react';
 import type { Tank, TankStatus, TankTrendPoint } from '@/types/tanks';
 import { TankTrendChart } from './TankTrendChart';
@@ -8,6 +9,7 @@ import { buildSimTankTrend } from '@/features/monitoring/simulators/tankSimulato
 
 interface TankCardProps {
   tank: Tank;
+  showDetailsButton?: boolean;
 }
 
 const statusColors: Record<TankStatus, string> = {
@@ -30,12 +32,26 @@ const statusLabels: Record<TankStatus, string> = {
   water_detected: 'WATER DETECTED',
 };
 
-function formatNum(n: number): string {
-  return n.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+function toFiniteNumber(value: unknown, fallback = 0): number {
+  const num = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(num) ? num : fallback;
 }
 
-function formatDate(iso: string): string {
-  const d = new Date(iso);
+function formatNum(n: unknown): string {
+  return toFiniteNumber(n).toLocaleString('en-US', {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
+}
+
+function formatDate(iso: unknown): string {
+  const safeIso =
+    typeof iso === 'string' || typeof iso === 'number' || iso instanceof Date ? iso : '';
+  const d = new Date(safeIso);
+  if (Number.isNaN(d.getTime())) {
+    return 'N/A';
+  }
+
   return d.toLocaleString('en-US', {
     month: 'numeric',
     day: 'numeric',
@@ -48,9 +64,8 @@ function formatDate(iso: string): string {
 }
 
 function getFuelColor(fuelTypeId: string): string {
-  // You can swap petrol to your “fuel vibe” orange later if you want:
-  // petrol -> '#f97316'
-  return fuelTypeId === 'diesel' ? '#3b82f6' : '#22c55e';
+  // Diesel: blue, Petrol: fuel-vibe orange
+  return fuelTypeId === 'diesel' ? '#3b82f6' : '#f97316';
 }
 
 function getStatusDotColor(status: TankStatus): string {
@@ -106,6 +121,22 @@ function AtgTankVisual({
 
   return (
     <Box style={{ width: '100%', maxWidth: 280, flexShrink: 0 }}>
+      <style>
+        {`
+          @keyframes atgWaveMove {
+            0% { background-position: 0px 0px; }
+            100% { background-position: 120px 0px; }
+          }
+
+          .atg-wave {
+            background:
+              radial-gradient(16px 10px at 16px 12px, rgba(255,255,255,0.55) 45%, rgba(255,255,255,0) 46%) repeat-x;
+            background-size: 32px 22px;
+            animation: atgWaveMove 2.2s linear infinite;
+            filter: blur(0.2px);
+          }
+        `}
+      </style>
       {/* Small hardware row (riser + probe head + status dot) */}
       <Group gap={10} align="center" mb={10}>
         <Box
@@ -170,42 +201,45 @@ function AtgTankVisual({
         >
           {/* Ullage (empty space) is just the cavity background */}
 
-          {/* Product fill (left-to-right) */}
+          {/* Product fill (bottom-to-top) */}
           <Box
             style={{
               position: 'absolute',
               left: 0,
-              top: 0,
+              right: 0,
               bottom: 0,
-              width: `${pct}%`,
-              background: `linear-gradient(180deg, ${fuelColor} 0%, rgba(0,0,0,0.08) 120%)`,
-              transition: 'width 350ms ease',
+              height: `${pct}%`,
+              background: `linear-gradient(180deg, rgba(255,255,255,0.18) 0%, ${fuelColor} 35%, rgba(0,0,0,0.10) 140%)`,
+              transition: 'height 450ms ease',
+              overflow: 'hidden',
             }}
           >
-            {/* Meniscus highlight */}
+            {/* Wavy surface */}
             <Box
+              className="atg-wave"
               style={{
                 position: 'absolute',
+                left: 0,
                 right: 0,
-                top: 0,
-                bottom: 0,
-                width: 2,
-                background: 'rgba(255,255,255,0.55)',
+                top: -10,
+                height: 22,
                 opacity: 0.55,
+                pointerEvents: 'none',
               }}
             />
           </Box>
 
-          {/* Water layer (thin band at bottom, only within filled region) */}
+          {/* Water layer (subtle band at bottom) */}
           {hasWater && waterBandPct > 0 && (
             <Box
               style={{
                 position: 'absolute',
                 left: 0,
-                width: `${pct}%`,
+                right: 0,
                 bottom: 0,
-                height: `${waterBandPct}%`,
-                background: 'rgba(59, 130, 246, 0.55)',
+                height: `${Math.min(waterBandPct, pct)}%`,
+                background: 'rgba(59, 130, 246, 0.40)',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.35)',
               }}
             />
           )}
@@ -280,37 +314,19 @@ function AtgTankVisual({
             {pct}%
           </Text>
         </Box>
-
-        {/* Water callout */}
-        {hasWater && (
-          <Box
-            style={{
-              position: 'absolute',
-              left: 14,
-              bottom: 12,
-              padding: '4px 8px',
-              borderRadius: 999,
-              background: 'rgba(255,255,255,0.9)',
-              border: '1px solid rgba(0,0,0,0.10)',
-            }}
-          >
-            <Text size="xs" fw={700} c="orange">
-              WATER
-            </Text>
-          </Box>
-        )}
-      </Box>
+</Box>
 
       {/* Small caption row */}
       <Group justify="space-between" mt={10}>
         <Text size="xs" c="dimmed">Product</Text>
-        <Text size="xs" c="dimmed">{capacityLiters > 0 ? `${pct}% full` : '—'}</Text>
+        <Text size="xs" c="dimmed">{capacityLiters > 0 ? `${pct}% full` : '-'}</Text>
       </Group>
     </Box>
   );
 }
 
-export function TankCard({ tank }: TankCardProps) {
+export function TankCard({ tank, showDetailsButton = true }: TankCardProps) {
+  const navigate = useNavigate();
   const [trendData, setTrendData] = useState<TankTrendPoint[]>([]);
   const [isLoadingTrend, setIsLoadingTrend] = useState(true);
 
@@ -336,13 +352,24 @@ export function TankCard({ tank }: TankCardProps) {
     loadTrend();
   }, [tank]);
 
+  const capacity = toFiniteNumber(tank.capacity);
+  const currentVolume = toFiniteNumber(tank.currentVolume);
+  const ullage = toFiniteNumber(tank.ullage, Math.max(0, capacity - currentVolume));
+  const currentLevel = toFiniteNumber(
+    tank.currentLevel,
+    capacity > 0 ? (currentVolume / capacity) * 100 : 0
+  );
+  const productHeight = toFiniteNumber(tank.productHeight);
+  const waterHeight = toFiniteNumber(tank.waterHeight);
+  const temperature = toFiniteNumber(tank.temperature);
   const fuelColor = getFuelColor(tank.fuelTypeId);
-  const fillPercent = clamp(tank.currentLevel, 0, 100);
-  const waterWarning = tank.waterHeight > 0;
+  const fillPercent = clamp(currentLevel, 0, 100);
+  const waterWarning = waterHeight > 0;
   const isOffline = tank.status === 'offline';
+  const deliveries = Array.isArray(tank.deliveries) ? tank.deliveries : [];
 
-  const latestDelivery = tank.deliveries.length > 0
-    ? tank.deliveries[tank.deliveries.length - 1]
+  const latestDelivery = deliveries.length > 0
+    ? deliveries[deliveries.length - 1]
     : null;
 
   return (
@@ -352,13 +379,14 @@ export function TankCard({ tank }: TankCardProps) {
         <div>
           <Group gap={8} align="baseline">
             <Text fw={700} size="lg">{tank.name}</Text>
-            <Text c="dimmed" size="sm">— {tank.fuelType}</Text>
+            <Text c="dimmed" size="sm">- {tank.fuelType}</Text>
           </Group>
           <Text size="xs" c="dimmed" mt={2} ff="monospace">
             ATG: {tank.atgSource}
           </Text>
         </div>
 
+        <Group gap="xs" align="center">
         <Badge
           color={statusColors[tank.status]}
           variant="filled"
@@ -367,6 +395,18 @@ export function TankCard({ tank }: TankCardProps) {
         >
           {statusLabels[tank.status]}
         </Badge>
+
+        {showDetailsButton && (
+          <Button
+            size="xs"
+            variant="light"
+            color="gray"
+            onClick={() => navigate(`/monitoring/tanks/${tank.id}`)}
+          >
+            Details
+          </Button>
+        )}
+      </Group>
       </Group>
 
       {/* Main content: ATG Tank visual + Stats */}
@@ -374,9 +414,9 @@ export function TankCard({ tank }: TankCardProps) {
         {/* Realistic ATG tank */}
         <AtgTankVisual
           fillPercent={fillPercent}
-          waterMm={tank.waterHeight}
-          productMm={tank.productHeight}
-          capacityLiters={tank.capacity}
+          waterMm={waterHeight}
+          productMm={productHeight}
+          capacityLiters={capacity}
           fuelColor={fuelColor}
           isOffline={isOffline}
           status={tank.status}
@@ -387,12 +427,12 @@ export function TankCard({ tank }: TankCardProps) {
           <SimpleGrid cols={2} spacing="xs" mb="sm">
             <Paper p="xs" withBorder radius="sm">
               <Text size="xs" c="dimmed">Volume</Text>
-              <Text fw={700} size="md">{formatNum(tank.currentVolume)}</Text>
+              <Text fw={700} size="md">{formatNum(currentVolume)}</Text>
               <Text size="xs" c="dimmed">L</Text>
             </Paper>
             <Paper p="xs" withBorder radius="sm">
               <Text size="xs" c="dimmed">Ullage</Text>
-              <Text fw={700} size="md">{formatNum(tank.ullage)}</Text>
+              <Text fw={700} size="md">{formatNum(ullage)}</Text>
               <Text size="xs" c="dimmed">L</Text>
             </Paper>
           </SimpleGrid>
@@ -403,26 +443,26 @@ export function TankCard({ tank }: TankCardProps) {
                 <IconDroplet size={14} color="#999" />
                 <Text size="xs" c="dimmed">Capacity</Text>
               </Group>
-              <Text fw={700}>{formatNum(tank.capacity)} L</Text>
+              <Text fw={700}>{formatNum(capacity)} L</Text>
             </div>
             <div>
               <Group gap={4} align="center">
                 <IconTemperature size={14} color="#999" />
                 <Text size="xs" c="dimmed">Temperature</Text>
               </Group>
-              <Text fw={700}>{tank.temperature.toFixed(1)}°C</Text>
+              <Text fw={700}>{temperature.toFixed(1)} °C</Text>
             </div>
           </Group>
 
           <Group gap="lg">
             <div>
               <Text size="xs" c="dimmed">Product Height</Text>
-              <Text fw={700}>{tank.productHeight} mm</Text>
+              <Text fw={700}>{formatNum(productHeight)} mm</Text>
             </div>
             <div>
               <Text size="xs" c="dimmed">Water Height</Text>
               <Text fw={700} c={waterWarning ? 'orange' : undefined}>
-                {tank.waterHeight} mm
+                {formatNum(waterHeight)} mm
               </Text>
             </div>
           </Group>
@@ -439,8 +479,8 @@ export function TankCard({ tank }: TankCardProps) {
           <Text size="xs" c="dimmed" mb={4}>24h Volume Trend</Text>
           <TankTrendChart
             data={trendData}
-            deliveries={tank.deliveries}
-            capacity={tank.capacity}
+            deliveries={deliveries}
+            capacity={capacity}
             fuelTypeId={tank.fuelTypeId}
             height={180}
           />

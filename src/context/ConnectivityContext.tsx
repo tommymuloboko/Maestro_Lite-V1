@@ -2,25 +2,21 @@ import { createContext, useContext, useState, useEffect, useCallback, type React
 import type { ConnectionStatus } from '@/types/common';
 import { pollingIntervals } from '@/config/ui';
 import { env } from '@/config/env';
-import { useStationConfigContext } from './StationConfigContext';
 
 interface ConnectivityContextValue {
   apiStatus: ConnectionStatus;
-  pts2Status: ConnectionStatus;
   checkConnectivity: () => Promise<void>;
 }
 
 const ConnectivityContext = createContext<ConnectivityContextValue | null>(null);
 
 export function ConnectivityProvider({ children }: { children: ReactNode }) {
-  const { pts2Url } = useStationConfigContext();
   const [apiStatus, setApiStatus] = useState<ConnectionStatus>('connecting');
-  const [pts2Status, setPts2Status] = useState<ConnectionStatus>('connecting');
 
   const checkApiConnection = useCallback(async () => {
     try {
       setApiStatus('connecting');
-      const response = await fetch(`${env.apiBaseUrl}/health`, {
+      const response = await fetch(`${env.apiUrl}/health`, {
         method: 'GET',
         signal: AbortSignal.timeout(5000),
       });
@@ -30,27 +26,9 @@ export function ConnectivityProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const checkPts2Connection = useCallback(async () => {
-    if (!pts2Url) {
-      setPts2Status('disconnected');
-      return;
-    }
-
-    try {
-      setPts2Status('connecting');
-      const response = await fetch(`${pts2Url}/health`, {
-        method: 'GET',
-        signal: AbortSignal.timeout(5000),
-      });
-      setPts2Status(response.ok ? 'connected' : 'error');
-    } catch {
-      setPts2Status('disconnected');
-    }
-  }, [pts2Url]);
-
   const checkConnectivity = useCallback(async () => {
-    await Promise.all([checkApiConnection(), checkPts2Connection()]);
-  }, [checkApiConnection, checkPts2Connection]);
+    await checkApiConnection();
+  }, [checkApiConnection]);
 
   useEffect(() => {
     const runCheck = () => {
@@ -67,7 +45,7 @@ export function ConnectivityProvider({ children }: { children: ReactNode }) {
   }, [checkConnectivity]);
 
   return (
-    <ConnectivityContext.Provider value={{ apiStatus, pts2Status, checkConnectivity }}>
+    <ConnectivityContext.Provider value={{ apiStatus, checkConnectivity }}>
       {children}
     </ConnectivityContext.Provider>
   );

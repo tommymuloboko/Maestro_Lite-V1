@@ -170,3 +170,86 @@ export interface ListResponseDto<T> {
   page: number;
   pageSize: number;
 }
+
+// ─── Transactions (new unified endpoint) ─────────────────────
+
+export interface TransactionDto {
+  id: string;
+  company_id: string;
+  station_id: string;
+  shift_id: string | null;
+  attendant_id: string | null;
+  tag_number: string;
+  full_name: string | null;
+  pump_id: number;
+  time: string;
+  amount: string;
+  currency: string;
+  transaction_id: number;
+  is_verified: boolean;
+  created_at: string;
+}
+
+export interface TransactionsResponseDto {
+  success: boolean;
+  count: number;
+  transactions: TransactionDto[];
+}
+
+export interface TransactionsSummaryDto {
+  success: boolean;
+  summary: Array<{
+    verified_total: string;
+    unverified_total: string;
+    total_count: string;
+    verified_count: string;
+    unverified_count: string;
+    currency: string;
+  }>;
+}
+
+export interface VerifiedSummaryDto {
+  success: boolean;
+  summary: {
+    by_payment_type: Array<{
+      payment_type: string;
+      count: string;
+      total_amount: string;
+      currency: string;
+    }>;
+    total_amount: number;
+    total_count: number;
+  };
+}
+
+// ─── Attendants (new endpoint) ───────────────────────────────
+
+export interface AttendantDto {
+  id: string;
+  company_id: string;
+  station_id: string;
+  employee_id: string;
+  attendant_no: string;
+  phone?: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface AttendantsResponseDto {
+  success: boolean;
+  count: number;
+  attendants: AttendantDto[];
+}
+
+export interface CreateAttendantRequestDto {
+  company_id: string;
+  station_id: string;
+  name: string;
+  employee_id: string;
+  pin: string;
+}
+
+export interface AttendantResponseDto {
+  success: boolean;
+  attendant: AttendantDto;
+}

@@ -54,6 +54,31 @@ export interface IApiService {
   getFuelSale(id: string): Promise<FuelTransaction>;
   getFuelSalesSummary(filters?: FuelSalesFiltersDto): Promise<FuelSalesSummary>;
 
+  // Transactions (new /api/transactions endpoint)
+  getTransactions(params?: {
+    station_id?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ count: number; transactions: RawFuelTransaction[] }>;
+  getTransactionsSummary(stationId?: string): Promise<{
+    verifiedTotal: number;
+    unverifiedTotal: number;
+    totalCount: number;
+    verifiedCount: number;
+    unverifiedCount: number;
+    currency: string;
+  }>;
+  getVerifiedTransactionsSummary(stationId?: string): Promise<{
+    byPaymentType: Array<{
+      paymentType: string;
+      count: number;
+      totalAmount: number;
+      currency: string;
+    }>;
+    totalAmount: number;
+    totalCount: number;
+  }>;
+
   // Pumps
   getPumps(): Promise<Pump[]>;
   getPump(id: string): Promise<Pump>;

@@ -1,4 +1,5 @@
 import { getApiService } from '@/lib/api/apiAdapter';
+import type { TankAlert } from '@/types/tanks';
 
 export async function getTanks() {
   const svc = await getApiService();
@@ -20,7 +21,8 @@ export async function getTankTrend(tankId: string) {
   return svc.getTankTrend(tankId);
 }
 
-export async function getTankAlerts() {
+export async function getTankAlerts(): Promise<TankAlert[]> {
   const svc = await getApiService();
-  return svc.getTankAlerts();
+  const payload = await svc.getTankAlerts();
+  return Array.isArray(payload) ? payload : [];
 }
