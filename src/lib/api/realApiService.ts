@@ -128,11 +128,11 @@ export class RealApiService implements IApiService {
       return { data: [], total: 0, page, pageSize, totalPages: 0 };
     }
 
-    // Backend response format
+    // Backend response format: { success, count, shifts: [...] }
     interface ShiftResponseDto {
-      error: boolean;
+      success: boolean;
       count: number;
-      data: Array<{
+      shifts: Array<{
         id: string;
         company_id: string;
         station_id: string;
@@ -145,7 +145,6 @@ export class RealApiService implements IApiService {
         is_pending_verification: boolean;
         is_verified: boolean;
         is_disputed: boolean;
-        opened_by_user_id: string;
         created_at: string;
         attendant_no?: string;
         attendant_name?: string;
@@ -163,7 +162,7 @@ export class RealApiService implements IApiService {
     });
 
     // Map snake_case to camelCase
-    const shifts: Shift[] = (res.data || []).map((s) => ({
+    const shifts: Shift[] = (res.shifts || []).map((s) => ({
       id: s.id,
       companyId: s.company_id,
       stationId: s.station_id,
@@ -178,13 +177,12 @@ export class RealApiService implements IApiService {
       isPendingVerification: s.is_pending_verification,
       isVerified: s.is_verified,
       isDisputed: s.is_disputed,
-      openedByUserId: s.opened_by_user_id,
+      openedByUserId: '',
       createdAt: s.created_at,
       updatedAt: s.created_at,
       openingReadings: [],
       transactions: [],
       payments: [],
-      // Enriched fields from join
       attendant: s.attendant_name ? {
         id: s.attendant_id,
         companyId: s.company_id,
@@ -213,7 +211,7 @@ export class RealApiService implements IApiService {
   }
 
   async startShift(data: StartShiftRequestDto): Promise<{ shiftId: string }> {
-    return api.post<{ shiftId: string }>(endpoints.shifts.start, data);
+    return api.post<{ shiftId: string }>(endpoints.shifts.open, data);
   }
 
   async endShift(id: string, data: EndShiftRequestDto): Promise<void> {
@@ -225,18 +223,18 @@ export class RealApiService implements IApiService {
   }
 
   async getShiftRawTransactions(shiftId: string): Promise<RawFuelTransaction[]> {
-    const res = await api.get<{ data: RawFuelTransaction[] }>(endpoints.shifts.rawTransactions(shiftId));
+    const res = await api.get<{ data: RawFuelTransaction[] }>(endpoints.shifts.get(shiftId));
     return res.data;
   }
 
   async getShiftVerifiedTransactions(shiftId: string): Promise<VerifiedFuelTransaction[]> {
-    const res = await api.get<{ data: VerifiedFuelTransaction[] }>(endpoints.shifts.verifiedTransactions(shiftId));
+    const res = await api.get<{ data: VerifiedFuelTransaction[] }>(endpoints.shifts.get(shiftId));
     return res.data;
   }
 
   async getShiftDeclaration(shiftId: string): Promise<ShiftCloseDeclaration | null> {
     try {
-      return await api.get<ShiftCloseDeclaration>(endpoints.shifts.declaration(shiftId));
+      return await api.get<ShiftCloseDeclaration>(endpoints.shifts.closeDeclaration(shiftId));
     } catch {
       return null;
     }
@@ -244,7 +242,7 @@ export class RealApiService implements IApiService {
 
   async getShiftVerificationSummary(shiftId: string): Promise<ShiftVerificationSummary | null> {
     try {
-      return await api.get<ShiftVerificationSummary>(endpoints.shifts.verificationSummary(shiftId));
+      return await api.get<ShiftVerificationSummary>(endpoints.shifts.verification(shiftId));
     } catch {
       return null;
     }
@@ -546,8 +544,32 @@ export class RealApiService implements IApiService {
     await api.delete(endpoints.attendants.delete(id));
   }
 
-  async getAttendantTags(attendantId: string): Promise<AttendantRfidTag[]> {
-    return api.get<AttendantRfidTag[]>(endpoints.attendants.tags(attendantId));
+  async getAttendantTags(): Promise<AttendantRfidTag[]> {
+    const res = await api.get<{
+      error: boolean; data: Array<{
+        id: string;
+        attendant_id: string;
+        station_id: string;
+        tag_number: string;
+        is_active: boolean;
+        issued_at: string;
+        revoked_at: string | null;
+        attendant_no?: string;
+        attendant_name?: string;
+      }>
+    }>(endpoints.attendantTags.list);
+
+    return (res.data || []).map((t) => ({
+      id: t.id,
+      attendantId: t.attendant_id,
+      stationId: t.station_id,
+      tagNumber: t.tag_number,
+      isActive: t.is_active,
+      issuedAt: t.issued_at,
+      revokedAt: t.revoked_at,
+      attendantNo: t.attendant_no,
+      attendantName: t.attendant_name,
+    }));
   }
 }
 

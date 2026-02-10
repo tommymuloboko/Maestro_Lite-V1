@@ -5,14 +5,14 @@ import { formatTime } from '@/lib/utils/dates';
 import { paymentTypeLabels } from '@/config/stationDefaults';
 
 interface TransactionsListProps {
-  transactions: FuelTransaction[];
+  transactions?: FuelTransaction[];
 }
 
-export function TransactionsList({ transactions }: TransactionsListProps) {
+export function TransactionsList({ transactions = [] }: TransactionsListProps) {
   if (transactions.length === 0) {
     return (
       <Text size="sm" c="dimmed" ta="center" py="md">
-        No transactions
+        No transactions available for this shift (summary only).
       </Text>
     );
   }

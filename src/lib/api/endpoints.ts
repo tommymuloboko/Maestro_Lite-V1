@@ -18,22 +18,16 @@ export const endpoints = {
     verifiedSummary: '/transactions/verified/summary',
   },
 
-  // Attendant Shifts (station-scoped)
+  // Attendant Shifts
   shifts: {
-    // List shifts for a station: GET /api/stations/{stationId}/attendant-shifts
     listByStation: (stationId: string) => `/stations/${stationId}/attendant-shifts`,
     get: (id: string) => `/attendant-shifts/${id}`,
     open: '/attendant-shifts/open',
-    start: '/attendant-shifts/open',
     end: (id: string) => `/attendant-shifts/${id}/end`,
+    closeDeclaration: (id: string) => `/attendant-shifts/${id}/close-declaration`,
     verify: (id: string) => `/attendant-shifts/${id}/verify`,
     dispute: (id: string) => `/attendant-shifts/${id}/dispute`,
-    rawTransactions: (id: string) => `/attendant-shifts/${id}/raw-transactions`,
-    verifiedTransactions: (id: string) => `/attendant-shifts/${id}/verified-transactions`,
-    closeDeclaration: (id: string) => `/attendant-shifts/${id}/close-declaration`,
-    declaration: (id: string) => `/attendant-shifts/${id}/close-declaration`,
     verification: (id: string) => `/attendant-shifts/${id}/verification`,
-    verificationSummary: (id: string) => `/attendant-shifts/${id}/verification`,
   },
 
   // Fuel Transactions (legacy endpoints - may be replaced by /transactions)
@@ -45,14 +39,22 @@ export const endpoints = {
     verified: '/fuel-sales/verified',
   },
 
-  // Attendants (new top-level endpoint)
+  // Attendants
   attendants: {
     list: '/attendants',
     get: (id: string) => `/attendants/${id}`,
     create: '/attendants',
     update: (id: string) => `/attendants/${id}`,
     delete: (id: string) => `/attendants/${id}`,
-    tags: (attendantId: string) => `/attendants/${attendantId}/tags`,
+  },
+
+  // Attendant Tags (top-level endpoint)
+  attendantTags: {
+    list: '/attendant-tags',
+    get: (id: string) => `/attendant-tags/${id}`,
+    create: '/attendant-tags',
+    revoke: (id: string) => `/attendant-tags/${id}/revoke`,
+    activate: (id: string) => `/attendant-tags/${id}/activate`,
   },
 
   // Pumps (PTS system)
@@ -79,12 +81,9 @@ export const endpoints = {
     pumpTotals: '/reports/pump-totals',
   },
 
-  // Settings (legacy endpoints)
+  // Settings
   settings: {
     station: '/settings/station',
-    attendants: '/settings/attendants',
-    attendant: (id: string) => `/settings/attendants/${id}`,
-    attendantTags: '/settings/attendant-tags',
     paymentTypes: '/settings/payment-types',
     printers: '/settings/printers',
   },
@@ -99,3 +98,4 @@ export const endpoints = {
   // Health check
   health: '/health',
 } as const;
+

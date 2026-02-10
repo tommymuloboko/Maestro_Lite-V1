@@ -15,6 +15,7 @@ interface DataTableProps<T> {
   page?: number;
   totalPages?: number;
   onPageChange?: (page: number) => void;
+  onRowClick?: (row: T) => void;
   emptyMessage?: string;
   getRowKey: (row: T) => string;
 }
@@ -26,6 +27,7 @@ export function DataTable<T>({
   page = 1,
   totalPages = 1,
   onPageChange,
+  onRowClick,
   emptyMessage = 'No data available',
   getRowKey,
 }: DataTableProps<T>) {
@@ -59,7 +61,11 @@ export function DataTable<T>({
         </Table.Thead>
         <Table.Tbody>
           {data.map((row) => (
-            <Table.Tr key={getRowKey(row)}>
+            <Table.Tr
+              key={getRowKey(row)}
+              onClick={onRowClick ? () => onRowClick(row) : undefined}
+              style={onRowClick ? { cursor: 'pointer' } : undefined}
+            >
               {columns.map((col) => (
                 <Table.Td key={col.key}>{col.render(row)}</Table.Td>
               ))}

@@ -108,7 +108,7 @@ export interface IApiService {
   createAttendant(data: Partial<Attendant>): Promise<Attendant>;
   updateAttendant(id: string, data: Partial<Attendant>): Promise<Attendant>;
   deleteAttendant(id: string): Promise<void>;
-  getAttendantTags(attendantId: string): Promise<AttendantRfidTag[]>;
+  getAttendantTags(): Promise<AttendantRfidTag[]>;
 }
 
 // ─── Factory ─────────────────────────────────────────────────

@@ -15,7 +15,7 @@ import type { DateRange } from '@/types/common';
 import type { RawFuelTransaction } from '@/types/fuel';
 import { formatMoney } from '@/lib/utils/money';
 import { paths } from '@/routes/paths';
-import { useTransactions, useTransactionsSummary } from '@/features/fuelSales/api/transactions.hooks';
+import { useTransactions } from '@/features/fuelSales/api/transactions.hooks';
 import { useLivePumps } from '@/hooks/useLivePumps';
 import { useDashboardAlerts, useDashboardSummary } from '../api/dashboard.hooks';
 import { DashboardQuickActions, type DashboardQuickActionItem } from '../components/DashboardQuickActions';
@@ -177,7 +177,6 @@ export default function DashboardScreen() {
   const { data: alertsData = [] } = useDashboardAlerts();
   const { data: pumpsData = [] } = useLivePumps();
   const { data: txData, isLoading: isTransactionsLoading } = useTransactions({ limit: 500 });
-  const { data: txSummary } = useTransactionsSummary();
 
   const rangeTransactions = useMemo(() => {
     const transactions = txData?.transactions ?? [];

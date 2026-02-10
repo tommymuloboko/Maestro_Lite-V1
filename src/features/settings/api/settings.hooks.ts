@@ -32,11 +32,10 @@ export function useAttendants() {
   });
 }
 
-export function useAttendantTags(attendantId: string) {
+export function useAttendantTags() {
   return useQuery({
-    queryKey: [...queryKeys.settings.attendants(), attendantId, 'tags'] as const,
-    queryFn: () => getAttendantTags(attendantId),
-    enabled: !!attendantId,
+    queryKey: [...queryKeys.settings.attendants(), 'tags'] as const,
+    queryFn: () => getAttendantTags(),
   });
 }
 

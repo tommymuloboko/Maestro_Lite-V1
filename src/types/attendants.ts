@@ -21,7 +21,9 @@ export interface AttendantRfidTag {
   tagNumber: string;           // RFID tag number (unique)
   isActive: boolean;
   issuedAt: string;
-  revokedAt?: string;
+  revokedAt?: string | null;
+  attendantNo?: string;        // joined from attendant
+  attendantName?: string;      // joined from employee
 }
 
 /* Legacy UI tag (label/color grouping) */
@@ -30,3 +32,4 @@ export interface AttendantTag {
   name: string;
   color: string;
 }
+

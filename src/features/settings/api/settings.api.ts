@@ -36,9 +36,9 @@ export async function deleteAttendant(id: string) {
   return svc.deleteAttendant(id);
 }
 
-export async function getAttendantTags(attendantId: string) {
+export async function getAttendantTags() {
   const svc = await getApiService();
-  return svc.getAttendantTags(attendantId);
+  return svc.getAttendantTags();
 }
 
 export async function getPaymentTypes() {
