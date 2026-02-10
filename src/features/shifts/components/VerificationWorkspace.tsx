@@ -3,6 +3,7 @@ import { Stack, Text, Paper, Group, Badge, Button, NumberInput } from '@mantine/
 import { notifications } from '@mantine/notifications';
 import { BulkPaymentAllocator } from './BulkPaymentAllocator';
 import { attendantShiftsApi } from '../api/attendantShiftsApi';
+import { getStoredUser } from '@/lib/storage/secureStore';
 import type { CloseDeclaration, ShiftDetails, VerificationResult } from '../types/attendantShifts';
 
 interface VerificationWorkspaceProps {
@@ -56,9 +57,10 @@ export function VerificationWorkspace({ shiftId, details }: VerificationWorkspac
   };
 
   const doVerify = async () => {
-    const userId = localStorage.getItem('user_id') ?? '';
+    const user = getStoredUser();
+    const userId = user?.id ?? '';
     if (!userId) {
-      notifications.show({ color: 'red', title: 'Missing user', message: 'user_id not found in storage.' });
+      notifications.show({ color: 'red', title: 'Missing user', message: 'Could not determine user from your session. Please log in again.' });
       return;
     }
     setLoading(true);
