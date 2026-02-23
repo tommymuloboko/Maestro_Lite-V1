@@ -13,6 +13,7 @@ import { PumpTransactionsScreen } from '@/features/pumps/screens/PumpTransaction
 import { TanksScreen } from '@/features/tanks/screens/TanksScreen';
 import { TankDetailsScreen } from '@/features/tanks/screens/TankDetailsScreen';
 import { FuelSalesScreen } from '@/features/fuelSales/screens/FuelSalesScreen';
+import { DebtorsScreen } from '@/features/debtors/screens/DebtorsScreen';
 import { ReportsScreen } from '@/features/reports/screens/ReportsScreen';
 import { SettingsScreen } from '@/features/settings/screens/SettingsScreen';
 
@@ -55,6 +56,10 @@ export const router = createBrowserRouter([
           {
             path: paths.fuelSales,
             element: <FuelSalesScreen />,
+          },
+          {
+            path: paths.debtors,
+            element: <DebtorsScreen />,
           },
           {
             path: paths.reports,

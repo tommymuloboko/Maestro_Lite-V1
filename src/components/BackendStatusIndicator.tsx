@@ -1,43 +1,22 @@
-import { Badge, Tooltip } from '@mantine/core';
-import { IconWifi, IconWifiOff, IconLoader } from '@tabler/icons-react';
+import { Badge, Group, Tooltip } from '@mantine/core';
+import { IconWifi, IconWifiOff, IconLoader, IconPlugConnected, IconPlugConnectedX } from '@tabler/icons-react';
 import { useConnectivity } from '@/hooks/useConnectivity';
 
-/**
- * Shows the API connection status in the header.
- * Uses ConnectivityContext to check API health.
- */
-export default function BackendStatusIndicator() {
-    const { apiStatus } = useConnectivity();
+const apiConfig = {
+    connected: { color: 'green', label: 'API', icon: IconWifi, tooltip: 'API connected' },
+    disconnected: { color: 'red', label: 'API', icon: IconWifiOff, tooltip: 'API disconnected' },
+    connecting: { color: 'yellow', label: 'API', icon: IconLoader, tooltip: 'Connecting to API...' },
+    error: { color: 'orange', label: 'API', icon: IconWifiOff, tooltip: 'API connection error' },
+};
 
-    const config = {
-        connected: {
-            color: 'green',
-            label: 'Online',
-            icon: IconWifi,
-            tooltip: 'API connected',
-        },
-        disconnected: {
-            color: 'red',
-            label: 'Offline',
-            icon: IconWifiOff,
-            tooltip: 'API disconnected',
-        },
-        connecting: {
-            color: 'yellow',
-            label: 'Connecting',
-            icon: IconLoader,
-            tooltip: 'Connecting to API...',
-        },
-        error: {
-            color: 'orange',
-            label: 'Error',
-            icon: IconWifiOff,
-            tooltip: 'API connection error',
-        },
-    };
+const wsConfig = {
+    connected: { color: 'green', label: 'Live', icon: IconPlugConnected, tooltip: 'WebSocket connected — real-time updates active' },
+    disconnected: { color: 'gray', label: 'WS', icon: IconPlugConnectedX, tooltip: 'WebSocket disconnected — using polling' },
+    connecting: { color: 'yellow', label: 'WS', icon: IconLoader, tooltip: 'WebSocket connecting...' },
+    error: { color: 'orange', label: 'WS', icon: IconPlugConnectedX, tooltip: 'WebSocket error — using polling' },
+};
 
-    const { color, label, icon: Icon, tooltip } = config[apiStatus];
-
+function StatusBadge({ color, label, icon: Icon, tooltip }: { color: string; label: string; icon: typeof IconWifi; tooltip: string }) {
     return (
         <Tooltip label={tooltip} withArrow>
             <Badge
@@ -61,5 +40,19 @@ export default function BackendStatusIndicator() {
                 {label}
             </Badge>
         </Tooltip>
+    );
+}
+
+/**
+ * Shows API + WebSocket connection status in the header.
+ */
+export default function BackendStatusIndicator() {
+    const { apiStatus, wsStatus } = useConnectivity();
+
+    return (
+        <Group gap={6}>
+            <StatusBadge {...apiConfig[apiStatus]} />
+            <StatusBadge {...wsConfig[wsStatus]} />
+        </Group>
     );
 }

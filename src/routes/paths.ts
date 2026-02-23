@@ -10,6 +10,7 @@ export const paths = {
   fuelSales: '/fuel-sales',
   pumpTransactions: (id: string) => `/monitoring/pumps/${id}/transactions`,
   tankDetails: (id: string) => `/monitoring/tanks/${id}`,
+  debtors: '/debtors',
   reports: '/reports',
   settings: '/settings',
 } as const;

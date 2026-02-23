@@ -34,6 +34,7 @@ import type {
   ReportFiltersDto,
   LoginResponseDto,
   TransactionsResponseDto,
+  TransactionDto,
   TransactionsSummaryDto,
   VerifiedSummaryDto,
   AttendantsResponseDto,
@@ -316,30 +317,226 @@ export class RealApiService implements IApiService {
     return [];
   }
 
-  // ── Reports ────────────────────────────────────────────────
+  // ── Reports (derived from shifts + transactions endpoints) ──
 
   async getShiftSummaryReport(filters: ReportFiltersDto): Promise<ShiftSummaryReport[]> {
-    return api.get<ShiftSummaryReport[]>(endpoints.reports.shiftSummary, {
-      params: filters,
+    const user = getStoredUser();
+    const stationId = user?.stationId || getStoredStationId();
+    if (!stationId) return [];
+
+    interface ShiftDto {
+      id: string;
+      attendant_name?: string;
+      attendant_no?: string;
+      started_at: string;
+      ended_at: string | null;
+      is_open: boolean;
+      is_ended: boolean;
+      is_verified: boolean;
+      is_pending_verification: boolean;
+      is_disputed: boolean;
+    }
+
+    const res = await api.get<{ shifts: ShiftDto[] }>(
+      endpoints.shifts.listByStation(stationId),
+      {
+        params: {
+          limit: 200,
+          offset: 0,
+          ...(filters.startDate && { from: filters.startDate }),
+          ...(filters.endDate && { to: filters.endDate }),
+          ...(filters.attendantId && { attendant_id: filters.attendantId }),
+        },
+      }
+    );
+
+    return (res.shifts || []).map((s) => {
+      const status = s.is_verified
+        ? 'verified'
+        : s.is_disputed
+          ? 'disputed'
+          : s.is_pending_verification
+            ? 'pending'
+            : s.is_ended
+              ? 'ended'
+              : 'active';
+
+      return {
+        shiftId: s.id,
+        attendantName: s.attendant_name || s.attendant_no || 'Unknown',
+        startTime: s.started_at,
+        endTime: s.ended_at || '',
+        totalSales: 0,
+        totalVolume: 0,
+        transactionCount: 0,
+        variance: 0,
+        status,
+      };
     });
   }
 
   async getDailySalesReport(filters: ReportFiltersDto): Promise<DailySalesReport[]> {
-    return api.get<DailySalesReport[]>(endpoints.reports.dailySales, {
-      params: filters,
+    const user = getStoredUser();
+    const stationId = user?.stationId || getStoredStationId();
+
+    const res = await api.get<TransactionsResponseDto>(endpoints.transactions.list, {
+      params: {
+        station_id: stationId,
+        limit: 1000,
+        offset: 0,
+      },
     });
+
+    const txs = res.transactions || [];
+
+    // Filter by date range
+    const filtered = txs.filter((t) => {
+      const txDate = new Date(t.time || t.created_at);
+      if (filters.startDate && txDate < new Date(filters.startDate)) return false;
+      if (filters.endDate && txDate > new Date(filters.endDate)) return false;
+      return true;
+    });
+
+    // Group by date (YYYY-MM-DD)
+    const byDate = new Map<string, TransactionDto[]>();
+    for (const tx of filtered) {
+      const dateKey = (tx.time || tx.created_at).substring(0, 10);
+      const group = byDate.get(dateKey) || [];
+      group.push(tx);
+      byDate.set(dateKey, group);
+    }
+
+    const result: DailySalesReport[] = [];
+    for (const [date, dateTxs] of byDate.entries()) {
+      let totalSales = 0;
+      let cash = 0;
+      let card = 0;
+      let mobile = 0;
+
+      for (const tx of dateTxs) {
+        const amt = parseFloat(tx.amount) || 0;
+        totalSales += amt;
+        // Transactions don't have payment_type field, so count all as cash for now
+        cash += amt;
+      }
+
+      result.push({
+        date,
+        totalSales,
+        totalVolume: 0,
+        transactionCount: dateTxs.length,
+        byPaymentType: { cash, card, mobile },
+        byFuelType: {},
+      });
+    }
+
+    return result.sort((a, b) => a.date.localeCompare(b.date));
   }
 
   async getAttendantPerformanceReport(filters: ReportFiltersDto): Promise<AttendantPerformanceReport[]> {
-    return api.get<AttendantPerformanceReport[]>(endpoints.reports.attendantPerformance, {
-      params: filters,
-    });
+    const user = getStoredUser();
+    const stationId = user?.stationId || getStoredStationId();
+    if (!stationId) return [];
+
+    interface ShiftDto {
+      id: string;
+      attendant_id: string;
+      attendant_name?: string;
+      attendant_no?: string;
+      started_at: string;
+      ended_at: string | null;
+      is_verified: boolean;
+    }
+
+    const res = await api.get<{ shifts: ShiftDto[] }>(
+      endpoints.shifts.listByStation(stationId),
+      {
+        params: {
+          limit: 200,
+          offset: 0,
+          ...(filters.startDate && { from: filters.startDate }),
+          ...(filters.endDate && { to: filters.endDate }),
+        },
+      }
+    );
+
+    // Group by attendant
+    const byAttendant = new Map<string, { name: string; shifts: ShiftDto[] }>();
+    for (const s of res.shifts || []) {
+      const key = s.attendant_id;
+      const group = byAttendant.get(key) || {
+        name: s.attendant_name || s.attendant_no || 'Unknown',
+        shifts: [],
+      };
+      group.shifts.push(s);
+      byAttendant.set(key, group);
+    }
+
+    const result: AttendantPerformanceReport[] = [];
+    for (const [attendantId, { name, shifts }] of byAttendant.entries()) {
+      result.push({
+        attendantId,
+        attendantName: name,
+        shiftCount: shifts.length,
+        totalSales: 0,
+        totalVolume: 0,
+        averageVariance: 0,
+        transactionCount: 0,
+      });
+    }
+
+    return result;
   }
 
   async getPumpTotalsReport(filters: ReportFiltersDto): Promise<PumpTotalsReport[]> {
-    return api.get<PumpTotalsReport[]>(endpoints.reports.pumpTotals, {
-      params: filters,
+    const user = getStoredUser();
+    const stationId = user?.stationId || getStoredStationId();
+
+    const res = await api.get<TransactionsResponseDto>(endpoints.transactions.list, {
+      params: {
+        station_id: stationId,
+        limit: 1000,
+        offset: 0,
+      },
     });
+
+    const txs = res.transactions || [];
+
+    // Filter by date range
+    const filtered = txs.filter((t) => {
+      const txDate = new Date(t.time || t.created_at);
+      if (filters.startDate && txDate < new Date(filters.startDate)) return false;
+      if (filters.endDate && txDate > new Date(filters.endDate)) return false;
+      return true;
+    });
+
+    // Group by pump_id
+    const byPump = new Map<number, TransactionDto[]>();
+    for (const tx of filtered) {
+      const key = tx.pump_id;
+      const group = byPump.get(key) || [];
+      group.push(tx);
+      byPump.set(key, group);
+    }
+
+    const result: PumpTotalsReport[] = [];
+    for (const [pumpId, pumpTxs] of byPump.entries()) {
+      let totalSales = 0;
+      for (const tx of pumpTxs) {
+        totalSales += parseFloat(tx.amount) || 0;
+      }
+
+      result.push({
+        pumpId: String(pumpId),
+        pumpNumber: pumpId,
+        totalVolume: 0,
+        totalSales,
+        transactionCount: pumpTxs.length,
+        byFuelType: {},
+      });
+    }
+
+    return result.sort((a, b) => a.pumpNumber - b.pumpNumber);
   }
 
   // ── Dashboard ──────────────────────────────────────────────

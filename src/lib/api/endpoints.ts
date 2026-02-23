@@ -73,13 +73,7 @@ export const endpoints = {
     alerts: '/pts/tanks/alerts',
   },
 
-  // Reports (all use VERIFIED transactions only)
-  reports: {
-    shiftSummary: '/reports/shift-summary',
-    dailySales: '/reports/daily-sales',
-    attendantPerformance: '/reports/attendant-performance',
-    pumpTotals: '/reports/pump-totals',
-  },
+  // Reports — no dedicated endpoints; derived from shifts + transactions
 
   // Settings
   settings: {

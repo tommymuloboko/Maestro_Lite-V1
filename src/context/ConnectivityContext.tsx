@@ -2,9 +2,12 @@ import { createContext, useContext, useState, useEffect, useCallback, type React
 import type { ConnectionStatus } from '@/types/common';
 import { pollingIntervals } from '@/config/ui';
 import { env } from '@/config/env';
+import { useWebSocket } from './WebSocketContext';
+import type { WsConnectionStatus } from '@/lib/ws/types';
 
 interface ConnectivityContextValue {
   apiStatus: ConnectionStatus;
+  wsStatus: WsConnectionStatus;
   checkConnectivity: () => Promise<void>;
 }
 
@@ -12,6 +15,7 @@ const ConnectivityContext = createContext<ConnectivityContextValue | null>(null)
 
 export function ConnectivityProvider({ children }: { children: ReactNode }) {
   const [apiStatus, setApiStatus] = useState<ConnectionStatus>('connecting');
+  const { wsStatus } = useWebSocket();
 
   const checkApiConnection = useCallback(async () => {
     try {
@@ -45,7 +49,7 @@ export function ConnectivityProvider({ children }: { children: ReactNode }) {
   }, [checkConnectivity]);
 
   return (
-    <ConnectivityContext.Provider value={{ apiStatus, checkConnectivity }}>
+    <ConnectivityContext.Provider value={{ apiStatus, wsStatus, checkConnectivity }}>
       {children}
     </ConnectivityContext.Provider>
   );

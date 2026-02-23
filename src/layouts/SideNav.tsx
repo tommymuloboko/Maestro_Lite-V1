@@ -4,6 +4,7 @@ import {
   IconDashboard,
   IconActivity,
   IconGasStation,
+  IconUsers,
   IconReportAnalytics,
   IconSettings,
   IconLogout,
@@ -18,6 +19,7 @@ const items: Item[] = [
   { label: "Dashboard", to: paths.dashboard, icon: IconDashboard },
   { label: "Monitoring", to: paths.monitoring, icon: IconActivity },
   { label: "Fuel Sales", to: paths.fuelSales, icon: IconGasStation },
+  { label: "Debtors", to: paths.debtors, icon: IconUsers },
   { label: "Reports", to: paths.reports, icon: IconReportAnalytics },
   { label: "Settings", to: paths.settings, icon: IconSettings },
 ];

@@ -4,6 +4,10 @@ import { api } from '@/lib/api/client';
 import { endpoints } from '@/lib/api/endpoints';
 import { pollingIntervals } from '@/config/ui';
 import type { CurrentTransaction, Nozzle, Pump, PumpStatus } from '@/types/pumps';
+import { useWebSocket } from '@/context/WebSocketContext';
+
+/** When WS is connected, slow the poll way down (safety-net only). */
+const WS_CONNECTED_POLL_MS = 60_000;
 
 const pumpStatuses: PumpStatus[] = ['idle', 'authorized', 'fueling', 'offline', 'error'];
 
@@ -143,13 +147,16 @@ function normalizePumpsResponse(payload: unknown): Pump[] {
 }
 
 export function useLivePumps() {
+  const { wsStatus } = useWebSocket();
+  const interval = wsStatus === 'connected' ? WS_CONNECTED_POLL_MS : pollingIntervals.pumps;
+
   return useQuery({
     queryKey: queryKeys.pumps.status(),
     queryFn: async () => {
       const response = await api.get<unknown>(endpoints.pumps.status);
       return normalizePumpsResponse(response);
     },
-    refetchInterval: pollingIntervals.pumps,
-    staleTime: pollingIntervals.pumps / 2,
+    refetchInterval: interval,
+    staleTime: interval / 2,
   });
 }
