@@ -61,7 +61,7 @@ export const endpoints = {
   pumps: {
     list: '/pts/pumps',
     get: (id: string) => `/pts/pumps/${id}`,
-    status: '/pts/pumps/status',
+    status: '/pts/pumps',
     transactions: (id: string) => `/pts/pumps/${id}/transactions`,
   },
 

@@ -28,7 +28,7 @@ const statusLabels: Record<PumpStatus, string> = {
 function fuelAccent(fuelType: string): string {
   const t = fuelType.toLowerCase();
   if (t.includes('diesel')) return '#3b82f6';
-  if (t.includes('petrol') || t.includes('gasoline') || t.includes('unleaded')) return '#f97316'; // fuel-vibe orange
+  if (t.includes('petrol') || t.includes('gasoline') || t.includes('unleaded')) return '#f97316';
   return '#22c55e';
 }
 
@@ -60,7 +60,13 @@ export function PumpCard({ pump }: PumpCardProps) {
   const amount = pump.currentTransaction ? formatMoney(pump.currentTransaction.amount) : '—';
   const volume = pump.currentTransaction ? formatVolume(pump.currentTransaction.volume) : '—';
 
-  const activeFuel = pump.currentTransaction?.fuelType?.toLowerCase() ?? '';
+  // ── FIX: Use fuelTypeId for reliable active-nozzle matching ──
+  // The old code did loose .includes() string matching on fuel names,
+  // which could false-positive (e.g. "Diesel 50" matching "Diesel 500").
+  // Instead, compare the fuelTypeId set by ptsToPump's buildNozzles.
+  const activeFuelTypeId = pump.currentTransaction
+    ? pump.nozzles?.find((n) => n.fuelType === pump.currentTransaction?.fuelType)?.fuelTypeId
+    : undefined;
 
   return (
     <Paper
@@ -73,7 +79,6 @@ export function PumpCard({ pump }: PumpCardProps) {
         overflow: 'hidden',
       }}
     >
-      {/* compact animations + responsive stacking */}
       <style>
         {`
           @keyframes pumpBlink { 0%, 60% { opacity: 1; } 61%, 100% { opacity: 0.25; } }
@@ -85,7 +90,7 @@ export function PumpCard({ pump }: PumpCardProps) {
       </style>
 
       <Stack gap={10}>
-        {/* Header (compact) */}
+        {/* Header */}
         <Group justify="space-between" align="flex-start" wrap="nowrap">
           <Group gap="sm" align="center" style={{ minWidth: 0 }}>
             <Box
@@ -131,7 +136,6 @@ export function PumpCard({ pump }: PumpCardProps) {
             </Box>
           </Group>
 
-          {/* Only show LIVE when fueling (no reserved empty space -> more room) */}
           {isFueling && (
             <Badge
               variant="light"
@@ -144,33 +148,31 @@ export function PumpCard({ pump }: PumpCardProps) {
           )}
         </Group>
 
-        {/* Pump body (compact) */}
+        {/* Pump body */}
         <Box
           style={{
             borderRadius: 16,
             border: '1px solid rgba(0,0,0,0.08)',
             background: 'linear-gradient(180deg, #f7f8fb 0%, #ffffff 100%)',
-            padding: 10, // smaller padding
+            padding: 10,
           }}
         >
           <Box
             className="pump-body-grid"
             style={{
               display: 'grid',
-              gridTemplateColumns: '108px minmax(0, 1fr)', // narrower nozzle rack
+              gridTemplateColumns: '108px minmax(0, 1fr)',
               gap: 10,
               alignItems: 'stretch',
             }}
           >
-            {/* Nozzles (minimal: max 2) */}
+            {/* Nozzles (max 2) */}
             <Stack gap={10}>
               {(pump.nozzles ?? []).slice(0, 2).map((nozzle) => {
                 const nFuel = nozzle.fuelType ?? 'Fuel';
                 const nAccent = fuelAccent(nFuel);
-                const isActive =
-                  isFueling &&
-                  activeFuel &&
-                  (nFuel.toLowerCase().includes(activeFuel) || activeFuel.includes(nFuel.toLowerCase()));
+                // FIX: match by fuelTypeId instead of loose string includes
+                const isActive = isFueling && activeFuelTypeId != null && nozzle.fuelTypeId === activeFuelTypeId;
 
                 return (
                   <Box key={nozzle.id} style={{ display: 'flex', gap: 10, alignItems: 'center', minWidth: 0 }}>
@@ -206,7 +208,6 @@ export function PumpCard({ pump }: PumpCardProps) {
                       <Text size="xs" fw={800} truncate style={{ lineHeight: 1.1 }}>
                         {nFuel}
                       </Text>
-                      {/* Keep totalizer, but smaller + no extra label */}
                       <Text size="xs" c="dimmed" style={{ lineHeight: 1.1 }}>
                         {(nozzle.totalizer ?? 0).toLocaleString()} L
                       </Text>
@@ -214,9 +215,16 @@ export function PumpCard({ pump }: PumpCardProps) {
                   </Box>
                 );
               })}
+
+              {/* Show placeholder if no nozzles detected */}
+              {(pump.nozzles ?? []).length === 0 && (
+                <Text size="xs" c="dimmed" ta="center" py="sm">
+                  No nozzles
+                </Text>
+              )}
             </Stack>
 
-            {/* LCD (smaller + fixed, so it never overflows) */}
+            {/* LCD display */}
             <Box style={{ minWidth: 0 }}>
               <Box
                 style={{
@@ -229,7 +237,7 @@ export function PumpCard({ pump }: PumpCardProps) {
                   padding: 12,
                   overflow: 'hidden',
                   boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.04)',
-                  height: 200, // slightly smaller than before
+                  height: 200,
                   display: 'flex',
                   flexDirection: 'column',
                 }}
@@ -308,7 +316,7 @@ export function PumpCard({ pump }: PumpCardProps) {
           </Box>
         </Box>
 
-        {/* Footer: only 1 action to save space */}
+        {/* Footer */}
         <Group justify="flex-end">
           <Button
             variant="subtle"

@@ -271,32 +271,90 @@ export class RealApiService implements IApiService {
 
   async getPumps(): Promise<Pump[]> {
     const res = await api.get<unknown>(endpoints.pumps.list);
-    // Handle both direct array and wrapped response
+    // Handle both direct array and wrapped { data: [...] } response
     const raw: unknown[] = Array.isArray(res)
       ? res
       : (res as { data?: unknown[] })?.data ?? [];
 
-    // Normalize: the backend may use pumpNumber/Pump instead of id/number
+    // Normalize flat PTS pump objects from `/api/pts/pumps`
     return raw
       .map((item) => {
         if (!item || typeof item !== 'object') return null;
         const p = item as Record<string, unknown>;
-        const rawId = p.id ?? p.pumpId ?? p.Pump ?? p.pumpNumber ?? p.number;
-        const rawNum = p.number ?? p.pumpNumber ?? p.Pump ?? p.pumpId;
+
+        // Pump number: backend sends both `pump` and `Pump`
+        const rawNum = p.Pump ?? p.pump ?? p.number ?? p.pumpNumber ?? p.pumpId;
         const num = typeof rawNum === 'number' ? rawNum : Number(rawNum);
-        if (!rawId && !num) return null;
+        if (!num && num !== 0) return null;
+
+        // Status: use _resolvedStatus → State → status (in priority order)
+        const resolvedStr = (p._resolvedStatus ?? p.State ?? p.status ?? '') as string;
+        let status: Pump['status'] = 'offline';
+        if (typeof resolvedStr === 'string' && resolvedStr) {
+          const t = resolvedStr.toLowerCase();
+          if (t === 'idle') status = 'idle';
+          else if (t === 'filling' || t.includes('fueling') || t.includes('dispensing')) status = 'fueling';
+          else if (t === 'authorized' || t.includes('calling')) status = 'authorized';
+          else if (t === 'finished' || t.includes('offline') || t.includes('closed')) status = 'offline';
+          else if (t.includes('error') || t.includes('fault')) status = 'error';
+          else status = 'idle';
+        }
+
+        // Build nozzles from NozzlePrices (for idle pumps)
+        const nozzles: Pump['nozzles'] = [];
+        const prices = Array.isArray(p.NozzlePrices) ? p.NozzlePrices as number[] : [];
+        for (let i = 0; i < prices.length; i++) {
+          if (prices[i] > 0) {
+            const nozzleNum = i + 1;
+            const isLast = nozzleNum === (p.LastNozzle as number ?? 0);
+            nozzles.push({
+              id: `P${num}-N${nozzleNum}`,
+              number: nozzleNum,
+              fuelType: isLast ? ((p.LastFuelGradeName as string) || 'Fuel') : `Grade ${nozzleNum}`,
+              fuelTypeId: isLast ? String(p.LastFuelGradeId ?? nozzleNum) : String(nozzleNum),
+              totalizer: isLast ? ((p.LastTotalVolume as number) ?? 0) : 0,
+            });
+          }
+        }
+        // If actively fueling with no NozzlePrices, create nozzle from FuelGradeName
+        if (nozzles.length === 0 && typeof p.FuelGradeName === 'string') {
+          nozzles.push({
+            id: `P${num}-N${(p.Nozzle as number) ?? 1}`,
+            number: (p.Nozzle as number) ?? 1,
+            fuelType: p.FuelGradeName,
+            fuelTypeId: String(p.FuelGradeId ?? 1),
+            totalizer: 0,
+          });
+        }
 
         const result: Pump = {
-          id: String(rawId ?? num),
-          number: num || 0,
-          name: typeof p.name === 'string' ? p.name : `Pump ${num || rawId}`,
-          status: (typeof p.status === 'string' ? p.status.toLowerCase() : 'offline') as Pump['status'],
-          nozzles: Array.isArray(p.nozzles) ? p.nozzles : [],
-          lastUpdated: typeof p.lastUpdated === 'string' ? p.lastUpdated : new Date().toISOString(),
+          id: String(p.id ?? num),
+          number: num,
+          name: typeof p.name === 'string' ? p.name : `Pump ${num}`,
+          status,
+          nozzles,
+          lastUpdated: (p.lastUpdate ?? p.LastDateTime ?? new Date().toISOString()) as string,
         };
-        if (p.currentTransaction && typeof p.currentTransaction === 'object') {
+
+        // Attach transaction data
+        if (status === 'fueling' && typeof p.Volume === 'number') {
+          result.currentTransaction = {
+            volume: p.Volume as number,
+            amount: (p.Amount as number) ?? 0,
+            fuelType: (p.FuelGradeName as string) || 'Unknown',
+            startTime: (p.DateTimeStart as string) || new Date().toISOString(),
+          };
+        } else if (typeof p.LastVolume === 'number' && (p.LastVolume as number) > 0) {
+          result.currentTransaction = {
+            volume: p.LastVolume as number,
+            amount: (p.LastAmount as number) ?? 0,
+            fuelType: (p.LastFuelGradeName as string) || 'Unknown',
+            startTime: (p.LastDateTimeStart as string) || new Date().toISOString(),
+          };
+        } else if (p.currentTransaction && typeof p.currentTransaction === 'object') {
           result.currentTransaction = p.currentTransaction as Pump['currentTransaction'];
         }
+
         return result;
       })
       .filter((p): p is Pump => p !== null);
