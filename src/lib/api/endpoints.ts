@@ -73,6 +73,11 @@ export const endpoints = {
     alerts: '/pts/tanks/alerts',
   },
 
+  // PTS Reports
+  ptsReports: {
+    pumpTransactions: '/pts/reports/pump-transactions',
+  },
+
   // Reports — no dedicated endpoints; derived from shifts + transactions
 
   // Settings
