@@ -270,9 +270,36 @@ export class RealApiService implements IApiService {
   // ── Pumps ──────────────────────────────────────────────────
 
   async getPumps(): Promise<Pump[]> {
-    const res = await api.get<Pump[] | { data: Pump[] }>(endpoints.pumps.list);
+    const res = await api.get<unknown>(endpoints.pumps.list);
     // Handle both direct array and wrapped response
-    return Array.isArray(res) ? res : (res?.data ?? []);
+    const raw: unknown[] = Array.isArray(res)
+      ? res
+      : (res as { data?: unknown[] })?.data ?? [];
+
+    // Normalize: the backend may use pumpNumber/Pump instead of id/number
+    return raw
+      .map((item) => {
+        if (!item || typeof item !== 'object') return null;
+        const p = item as Record<string, unknown>;
+        const rawId = p.id ?? p.pumpId ?? p.Pump ?? p.pumpNumber ?? p.number;
+        const rawNum = p.number ?? p.pumpNumber ?? p.Pump ?? p.pumpId;
+        const num = typeof rawNum === 'number' ? rawNum : Number(rawNum);
+        if (!rawId && !num) return null;
+
+        const result: Pump = {
+          id: String(rawId ?? num),
+          number: num || 0,
+          name: typeof p.name === 'string' ? p.name : `Pump ${num || rawId}`,
+          status: (typeof p.status === 'string' ? p.status.toLowerCase() : 'offline') as Pump['status'],
+          nozzles: Array.isArray(p.nozzles) ? p.nozzles : [],
+          lastUpdated: typeof p.lastUpdated === 'string' ? p.lastUpdated : new Date().toISOString(),
+        };
+        if (p.currentTransaction && typeof p.currentTransaction === 'object') {
+          result.currentTransaction = p.currentTransaction as Pump['currentTransaction'];
+        }
+        return result;
+      })
+      .filter((p): p is Pump => p !== null);
   }
 
   async getPump(id: string): Promise<Pump> {

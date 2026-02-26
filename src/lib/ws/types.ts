@@ -7,6 +7,7 @@
 // ─── Event types sent by the server ──────────────────────────
 
 export type WsEventType =
+    // Colon-separated (future / alias)
     | 'pump:status'       // full pump array snapshot
     | 'pump:update'       // single pump delta
     | 'tank:status'       // full tank array snapshot
@@ -14,6 +15,11 @@ export type WsEventType =
     | 'tank:alert'        // new / updated tank alert
     | 'shift:update'      // shift status change
     | 'transaction:new'   // new fuel transaction recorded
+    // camelCase names the backend actually sends
+    | 'pumpStatus'
+    | 'tankStatus'
+    | 'transaction'
+    // system
     | 'connected'         // server hello / handshake ack
     | 'error'             // server-side error
     | 'pong';             // heartbeat response
@@ -23,8 +29,11 @@ export type WsEventType =
  */
 export interface WsMessage<T = unknown> {
     type: WsEventType;
-    payload: T;
+    /** Present when the server wraps data in { type, payload }. */
+    payload?: T;
     timestamp?: string;
+    /** The backend often sends flat messages (e.g. { type, pump, status }). */
+    [key: string]: unknown;
 }
 
 // ─── Typed payloads for known events ─────────────────────────

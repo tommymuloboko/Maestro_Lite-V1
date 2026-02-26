@@ -166,12 +166,24 @@ export class WebSocketClient {
             return;
         }
 
+        // Extract the effective payload:
+        // If the server wraps data in { type, payload }, use msg.payload.
+        // Otherwise the backend sends flat objects like { type, pump, status, nozzle }
+        // — gather all fields except `type` and `timestamp` as the payload.
+        const effectivePayload: unknown =
+            msg.payload !== undefined
+                ? msg.payload
+                : (() => {
+                    const { type: _t, timestamp: _ts, ...rest } = msg;
+                    return Object.keys(rest).length > 0 ? rest : undefined;
+                })();
+
         // Emit to type-specific listeners
         const typeListeners = this.listeners.get(msg.type);
         if (typeListeners) {
             for (const listener of typeListeners) {
                 try {
-                    listener(msg.payload, msg);
+                    listener(effectivePayload, msg);
                 } catch (err) {
                     console.error(`[WS] Listener error for "${msg.type}":`, err);
                 }
@@ -181,7 +193,7 @@ export class WebSocketClient {
         // Emit to wildcard listeners
         for (const listener of this.wildcardListeners) {
             try {
-                listener(msg.payload, msg);
+                listener(effectivePayload, msg);
             } catch (err) {
                 console.error('[WS] Wildcard listener error:', err);
             }

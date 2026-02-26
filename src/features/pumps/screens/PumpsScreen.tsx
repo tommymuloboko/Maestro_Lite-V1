@@ -1,50 +1,57 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Badge, Center, Group, Loader, SimpleGrid, Text } from '@mantine/core';
 import { Screen } from '@/layouts/Screen';
 import { PumpCard } from '../components/PumpCard';
 import type { Pump } from '@/types/pumps';
 import { getApiService } from '@/lib/api/apiAdapter';
-import { env } from '@/config/env';
 import { createInitialSimPumps, tickSimPumps } from '@/features/monitoring/simulators/pumpSimulator';
+import { useDataSource } from '@/context/DataSourceContext';
+import { DataSourceToggle } from '@/components/DataSourceToggle';
 
 export function PumpsScreen() {
+  const { useSimulator } = useDataSource();
+
   const [pumps, setPumps] = useState<Pump[]>(() =>
-    env.useMonitoringSimulator ? createInitialSimPumps() : []
+    useSimulator ? createInitialSimPumps() : []
   );
-  const [isLoading, setIsLoading] = useState(!env.useMonitoringSimulator);
+  const [isLoading, setIsLoading] = useState(!useSimulator);
+
+  const loadRealPumps = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const api = await getApiService();
+      const data = await api.getPumps();
+      setPumps(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Failed to load pumps:', error);
+      setPumps([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    if (env.useMonitoringSimulator) {
+    if (useSimulator) {
+      // Switch to simulator data
+      setPumps(createInitialSimPumps());
+      setIsLoading(false);
+
       const timer = window.setInterval(() => {
         setPumps((prev) => tickSimPumps(prev));
       }, 1000);
-
-      setIsLoading(false);
 
       return () => {
         window.clearInterval(timer);
       };
     }
 
-    async function loadPumps() {
-      try {
-        const api = await getApiService();
-        const data = await api.getPumps();
-        // Defensive: ensure we always have an array
-        setPumps(Array.isArray(data) ? data : []);
-      } catch (error) {
-        console.error('Failed to load pumps:', error);
-        setPumps([]);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    loadPumps();
-  }, []);
+    // Switch to real data
+    loadRealPumps();
+  }, [useSimulator, loadRealPumps]);
 
   if (isLoading) {
     return (
-      <Screen title="Pumps">
+      <Screen title="Pumps" actions={<DataSourceToggle />}>
         <Center h={300}>
           <Loader size="lg" />
         </Center>
@@ -53,8 +60,8 @@ export function PumpsScreen() {
   }
 
   return (
-    <Screen title="Pumps">
-      {env.useMonitoringSimulator && (
+    <Screen title="Pumps" actions={<DataSourceToggle />}>
+      {useSimulator && (
         <Group mb="sm" gap="xs">
           <Badge variant="light" color="blue">SIMULATOR</Badge>
           <Text size="xs" c="dimmed">

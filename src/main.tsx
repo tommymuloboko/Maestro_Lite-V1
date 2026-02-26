@@ -15,6 +15,7 @@ import { AuthProvider } from './context/AuthContext'
 import { StationConfigProvider } from './context/StationConfigContext'
 import { ConnectivityProvider } from './context/ConnectivityContext'
 import { WebSocketProvider } from './context/WebSocketContext'
+import { DataSourceProvider } from './context/DataSourceContext'
 
 // Prevent default drag/drop behavior (prevents "dragEvent is not defined" error in Electron)
 document.addEventListener('dragover', (e) => e.preventDefault());
@@ -29,7 +30,9 @@ createRoot(document.getElementById('root')!).render(
           <StationConfigProvider>
             <WebSocketProvider>
               <ConnectivityProvider>
-                <RouterProvider router={router} />
+                <DataSourceProvider>
+                  <RouterProvider router={router} />
+                </DataSourceProvider>
               </ConnectivityProvider>
             </WebSocketProvider>
           </StationConfigProvider>

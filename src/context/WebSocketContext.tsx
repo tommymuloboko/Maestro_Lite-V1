@@ -67,6 +67,24 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
                 });
             });
 
+            // Backend sends camelCase "pumpStatus" — flat object { pump, status, nozzle }
+            client.on('pumpStatus', (data) => {
+                if (data && typeof data === 'object') {
+                    const d = data as Record<string, unknown>;
+                    // Single pump status update — patch into existing cache
+                    queryClient.setQueryData<Pump[]>(queryKeys.pumps.status(), (prev) => {
+                        if (!prev) return prev;
+                        const pumpNum = Number(d.pump ?? d.pumpNumber);
+                        if (!pumpNum) return prev;
+                        return prev.map((p) =>
+                            p.number === pumpNum
+                                ? { ...p, status: String(d.status ?? p.status).toLowerCase() as Pump['status'], lastUpdated: new Date().toISOString() }
+                                : p
+                        );
+                    });
+                }
+            });
+
             // ─── Tank events → React Query cache ─────────────────
 
             client.on<Tank[]>('tank:status', (tanks) => {
@@ -81,6 +99,23 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
                     if (!prev) return prev;
                     return prev.map((t) => (t.id === tank.id ? { ...t, ...tank } : t));
                 });
+            });
+
+            // Backend sends camelCase "tankStatus" — flat object { tank, status, ... }
+            client.on('tankStatus', (data) => {
+                if (data && typeof data === 'object') {
+                    const d = data as Record<string, unknown>;
+                    queryClient.setQueryData<Tank[]>(queryKeys.tanks.list(), (prev) => {
+                        if (!prev) return prev;
+                        const tankNum = Number(d.tank ?? d.tankNumber);
+                        if (!tankNum) return prev;
+                        return prev.map((t) =>
+                            t.number === tankNum
+                                ? { ...t, lastUpdated: new Date().toISOString() }
+                                : t
+                        );
+                    });
+                }
             });
 
             // ─── Tank alerts → React Query cache ─────────────────
@@ -117,7 +152,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 
             if (env.isDev) {
                 client.onAny((_payload, msg) => {
-                    if (msg.type !== 'pong') {
+                    if (msg.type !== 'pong' && msg.payload !== undefined) {
                         console.log(`[WS Event] ${msg.type}`, msg.payload);
                     }
                 });

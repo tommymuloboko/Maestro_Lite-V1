@@ -12,11 +12,15 @@ export function PumpTransactionsScreen() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (!id) {
+      setIsLoading(false);
+      return;
+    }
+
     async function loadTransactions() {
-      if (!id) return;
       try {
         const api = await getApiService();
-        const data = await api.getPumpTransactions(id);
+        const data = await api.getPumpTransactions(id!);
         setTransactions(data);
       } catch (error) {
         console.error('Failed to load pump transactions:', error);
