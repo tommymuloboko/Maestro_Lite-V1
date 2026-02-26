@@ -1,37 +1,21 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Badge, Center, Group, Loader, SimpleGrid, Text } from '@mantine/core';
+import { Center, Loader, SimpleGrid, Text } from '@mantine/core';
 import { Screen } from '@/layouts/Screen';
 import { PumpCard } from '../components/PumpCard';
 import type { Pump, PumpStatus, Nozzle } from '@/types/pumps';
 import { getApiService } from '@/lib/api/apiAdapter';
-import { createInitialSimPumps, tickSimPumps } from '@/features/monitoring/simulators/pumpSimulator';
-import { useDataSource } from '@/context/DataSourceContext';
-import { DataSourceToggle } from '@/components/DataSourceToggle';
 import { env } from '@/config/env';
 
 // ─── PTS payload types ──────────────────────────────────────
+//
+// The backend returns NESTED pump objects from GET /api/pts/pumps:
+//   { pump: 1, Id: 1, Type: "PumpIdleStatus", Data: { Pump: 1, NozzlePrices: [...], ... }, lastUpdate: "..." }
+//
+// All the actual pump data fields (NozzlePrices, LastVolume, etc.) live INSIDE .Data
+// The status comes from .Type (e.g. "PumpIdleStatus", "PumpFillingStatus")
 
-/**
- * The backend REST response (`GET /api/pts/pumps`) and the WebSocket
- * `connected` event both return pump data in a **flat** structure:
- *
- *   { pump: 1, Pump: 1, NozzlePrices: [...], _resolvedStatus: "Idle", ... }
- *
- * There is NO nested `Data` wrapper. The `_resolvedStatus` field is the
- * backend-resolved human-readable status string like "Idle", "Filling",
- * "Finished", etc.
- *
- * When a pump is actively fueling, the fields change from Last* to current:
- *   Volume, Amount, FuelGradeName  (instead of LastVolume, LastAmount, LastFuelGradeName)
- */
-interface FlatPtsPump {
-  pump: number;
+interface PtsPumpData {
   Pump: number;
-  _resolvedStatus?: string;
-  State?: string;            // "Finished" for offline pumps
-  lastUpdate?: string;
-
-  // ── Idle / post-fueling fields ──
   NozzleUp?: number;
   Nozzle?: number;
   Request?: string;
@@ -54,7 +38,7 @@ interface FlatPtsPump {
   LastReceivedTotalAmount?: number;
   User?: string;
 
-  // ── Active fueling fields (different from Last* above) ──
+  // Active fueling fields (replace Last* when pump is dispensing)
   Volume?: number;
   Price?: number;
   Amount?: number;
@@ -65,54 +49,78 @@ interface FlatPtsPump {
   FlowRate?: number;
   IsSuspended?: boolean;
   OrderedType?: string;
+
+  // Some responses include resolved status at Data level
+  _resolvedStatus?: string;
+  State?: string;
 }
 
-/** Shape of the broadcast "pumpStatus" data payload from WS */
+/** Top-level item from GET /api/pts/pumps → data[] */
+interface PtsApiPump {
+  pump: number;
+  Id: number;
+  Type: string;        // "PumpIdleStatus", "PumpFillingStatus", "PumpOfflineStatus"
+  Data: PtsPumpData;
+  lastUpdate?: string;
+  _resolvedStatus?: string;  // sometimes at top level too
+}
+
 interface PumpStatusBroadcast {
   pump: number;
-  status: FlatPtsPump;
+  status: PtsApiPump;
 }
 
 // ─── Helpers ────────────────────────────────────────────────
 
-/** Map _resolvedStatus / State string → our PumpStatus enum */
-function resolvePtsStatus(resolved?: string): PumpStatus {
-  if (!resolved) return 'offline';
-  const t = resolved.toLowerCase();
-  if (t === 'idle') return 'idle';
-  if (t === 'filling' || t.includes('fueling') || t.includes('dispensing')) return 'fueling';
-  if (t === 'authorized' || t.includes('calling') || t.includes('nozzle')) return 'authorized';
-  if (t === 'finished' || t.includes('offline') || t.includes('closed')) return 'offline';
-  if (t.includes('error') || t.includes('fault') || t.includes('alarm')) return 'error';
-  return 'idle';
+function resolvePtsStatus(ptsType?: string, resolved?: string): PumpStatus {
+  // If we have a direct _resolvedStatus, use it
+  if (resolved) {
+    const r = resolved.toLowerCase();
+    if (r === 'idle') return 'idle';
+    if (r === 'filling' || r.includes('fueling') || r.includes('dispensing')) return 'fueling';
+    if (r === 'authorized' || r.includes('calling')) return 'authorized';
+    if (r === 'finished' || r.includes('offline') || r.includes('closed')) return 'offline';
+    if (r.includes('error') || r.includes('fault')) return 'error';
+  }
+
+  // Fall back to Type field (e.g. "PumpIdleStatus")
+  if (ptsType) {
+    const t = ptsType.toLowerCase();
+    if (t.includes('idle')) return 'idle';
+    if (t.includes('filling') || t.includes('fueling') || t.includes('dispensing')) return 'fueling';
+    if (t.includes('authorized') || t.includes('calling') || t.includes('nozzle')) return 'authorized';
+    if (t.includes('offline') || t.includes('finished') || t.includes('closed')) return 'offline';
+    if (t.includes('error') || t.includes('fault') || t.includes('alarm')) return 'error';
+  }
+
+  return 'offline';
 }
 
-/** Build nozzles from the NozzlePrices array (only present on idle pumps) */
-function buildNozzles(pumpNumber: number, p: FlatPtsPump): Nozzle[] {
+function buildNozzles(pumpNumber: number, d: PtsPumpData): Nozzle[] {
   const nozzles: Nozzle[] = [];
-  const prices = p.NozzlePrices ?? [];
+  const prices = d.NozzlePrices ?? [];
 
   for (let i = 0; i < prices.length; i++) {
     if (prices[i] > 0) {
       const nozzleNum = i + 1;
-      const isLastNozzle = nozzleNum === (p.LastNozzle ?? 0);
+      const isLastNozzle = nozzleNum === (d.LastNozzle ?? 0);
       nozzles.push({
         id: `P${pumpNumber}-N${nozzleNum}`,
         number: nozzleNum,
-        fuelType: isLastNozzle ? (p.LastFuelGradeName || 'Fuel') : `Grade ${nozzleNum}`,
-        fuelTypeId: isLastNozzle ? String(p.LastFuelGradeId ?? nozzleNum) : String(nozzleNum),
-        totalizer: isLastNozzle ? (p.LastTotalVolume ?? 0) : 0,
+        fuelType: isLastNozzle ? (d.LastFuelGradeName || 'Fuel') : `Grade ${nozzleNum}`,
+        fuelTypeId: isLastNozzle ? String(d.LastFuelGradeId ?? nozzleNum) : String(nozzleNum),
+        totalizer: isLastNozzle ? (d.LastTotalVolume ?? 0) : 0,
       });
     }
   }
 
-  // If fueling, we may have a single active nozzle with FuelGradeName but no NozzlePrices
-  if (nozzles.length === 0 && p.FuelGradeName) {
+  // If actively fueling with no NozzlePrices, create from FuelGradeName
+  if (nozzles.length === 0 && d.FuelGradeName) {
     nozzles.push({
-      id: `P${pumpNumber}-N${p.Nozzle ?? 1}`,
-      number: p.Nozzle ?? 1,
-      fuelType: p.FuelGradeName,
-      fuelTypeId: String(p.FuelGradeId ?? 1),
+      id: `P${pumpNumber}-N${d.Nozzle ?? 1}`,
+      number: d.Nozzle ?? 1,
+      fuelType: d.FuelGradeName,
+      fuelTypeId: String(d.FuelGradeId ?? 1),
       totalizer: 0,
     });
   }
@@ -120,37 +128,38 @@ function buildNozzles(pumpNumber: number, p: FlatPtsPump): Nozzle[] {
   return nozzles;
 }
 
-/** Convert a flat PTS pump object → our Pump type */
-export function flatPtsToPump(p: FlatPtsPump): Pump {
-  const pumpNumber = p.Pump ?? p.pump;
-  const status = resolvePtsStatus(p._resolvedStatus ?? p.State);
+/** Convert a PTS API pump item → our Pump type */
+export function ptsApiToPump(item: PtsApiPump): Pump {
+  const d = item.Data;
+  const pumpNumber = d?.Pump ?? item.pump ?? item.Id;
+  const status = resolvePtsStatus(item.Type, item._resolvedStatus ?? d?._resolvedStatus);
 
   const pump: Pump = {
     id: String(pumpNumber),
     number: pumpNumber,
     name: `Pump ${pumpNumber}`,
     status,
-    nozzles: buildNozzles(pumpNumber, p),
-    lastUpdated: p.lastUpdate ?? p.LastDateTime ?? new Date().toISOString(),
+    nozzles: d ? buildNozzles(pumpNumber, d) : [],
+    lastUpdated: item.lastUpdate ?? d?.LastDateTime ?? new Date().toISOString(),
   };
 
-  // Attach transaction data — use current fueling fields first, fall back to Last* fields
-  if (status === 'fueling' && p.Volume != null) {
-    // Actively fueling — use the live fields
-    pump.currentTransaction = {
-      volume: p.Volume ?? 0,
-      amount: p.Amount ?? 0,
-      fuelType: p.FuelGradeName || 'Unknown',
-      startTime: p.DateTimeStart || new Date().toISOString(),
-    };
-  } else if ((p.LastVolume ?? 0) > 0) {
-    // Last completed transaction
-    pump.currentTransaction = {
-      volume: p.LastVolume ?? 0,
-      amount: p.LastAmount ?? 0,
-      fuelType: p.LastFuelGradeName || 'Unknown',
-      startTime: p.LastDateTimeStart || new Date().toISOString(),
-    };
+  // Attach transaction: active fueling uses Volume/Amount, idle uses Last*
+  if (d) {
+    if (status === 'fueling' && d.Volume != null) {
+      pump.currentTransaction = {
+        volume: d.Volume ?? 0,
+        amount: d.Amount ?? 0,
+        fuelType: d.FuelGradeName || 'Unknown',
+        startTime: d.DateTimeStart || new Date().toISOString(),
+      };
+    } else if ((d.LastVolume ?? 0) > 0) {
+      pump.currentTransaction = {
+        volume: d.LastVolume ?? 0,
+        amount: d.LastAmount ?? 0,
+        fuelType: d.LastFuelGradeName || 'Unknown',
+        startTime: d.LastDateTimeStart || new Date().toISOString(),
+      };
+    }
   }
 
   return pump;
@@ -159,39 +168,39 @@ export function flatPtsToPump(p: FlatPtsPump): Pump {
 // ─── Component ──────────────────────────────────────────────
 
 export function PumpsScreen() {
-  const { useSimulator } = useDataSource();
-
   const [pumps, setPumps] = useState<Pump[]>([]);
-  const [isLoading, setIsLoading] = useState(!useSimulator);
+  const [isLoading, setIsLoading] = useState(true);
   const wsRef = useRef<WebSocket | null>(null);
 
-  const loadPumpsFromApi = useCallback(async () => {
+  const loadPumps = useCallback(async () => {
     setIsLoading(true);
     try {
-      const api = await getApiService();
-      // getPumps() returns Pump[] but the realApiService normalizer is wrong,
-      // so we bypass it and fetch the raw response directly from the API
-      const res = await (api as unknown as { getPumpsRaw?: () => Promise<unknown> }).getPumpsRaw?.()
-        ?? api.getPumps();
+      const apiUrl = env.apiUrl || `http://${window.location.hostname}:3000/api`;
+      const url = `${apiUrl}/pts/pumps`;
 
-      // If we got the raw payload { success, data: [...] }, normalize it ourselves
-      if (res && typeof res === 'object' && !Array.isArray(res) && 'data' in (res as Record<string, unknown>)) {
-        const raw = (res as { data: FlatPtsPump[] }).data;
-        setPumps(raw.map(flatPtsToPump));
-      } else if (Array.isArray(res)) {
-        // getPumps() already returned Pump[] — check if they have _resolvedStatus (raw format)
-        const first = res[0] as Record<string, unknown> | undefined;
-        if (first && ('_resolvedStatus' in first || 'Pump' in first)) {
-          setPumps((res as unknown as FlatPtsPump[]).map(flatPtsToPump));
-        } else {
-          setPumps(res as Pump[]);
-        }
-      } else {
+      const response = await fetch(url, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const json = await response.json();
+      const items: PtsApiPump[] = json.data ?? [];
+      const normalized = items.map(ptsApiToPump);
+
+      console.log(`[PumpsScreen] Loaded ${normalized.length} pumps, first status: ${normalized[0]?.status}`);
+      setPumps(normalized);
+    } catch (error) {
+      console.error('[PumpsScreen] Failed to load pumps:', error);
+      // Fallback to API service
+      try {
+        const api = await getApiService();
+        setPumps(await api.getPumps());
+      } catch {
         setPumps([]);
       }
-    } catch (error) {
-      console.error('Failed to load pumps:', error);
-      setPumps([]);
     } finally {
       setIsLoading(false);
     }
@@ -208,25 +217,23 @@ export function PumpsScreen() {
       try {
         const msg = JSON.parse(event.data as string);
 
-        // Initial full state on connect
-        // Backend sends: { type: 'connected', data: { pumps: [...], tanks: [...] } }
+        // Initial full state: { type: 'connected', data: { pumps: [...] } }
         if (msg.type === 'connected' && msg.data?.pumps) {
-          const flatPumps = msg.data.pumps as FlatPtsPump[];
-          const initial = flatPumps.map(flatPtsToPump);
+          const ptsItems = msg.data.pumps as PtsApiPump[];
+          const initial = ptsItems.map(ptsApiToPump);
           if (initial.length > 0) {
             setPumps(initial);
             setIsLoading(false);
           }
         }
 
-        // Live pump status update
-        // Backend broadcasts: { type: 'pumpStatus', timestamp, data: { pump, status: {...} } }
+        // Live update: { type: 'pumpStatus', data: { pump, status: { Id, Type, Data } } }
         if (msg.type === 'pumpStatus' && msg.data) {
           const broadcast = msg.data as PumpStatusBroadcast;
-          const flatPump = broadcast.status ?? msg.data;
+          const ptsItem = broadcast.status ?? msg.data;
 
-          if (flatPump && (flatPump.Pump != null || flatPump.pump != null)) {
-            const updated = flatPtsToPump(flatPump as FlatPtsPump);
+          if (ptsItem?.Data) {
+            const updated = ptsApiToPump(ptsItem as PtsApiPump);
             setPumps((prev) => {
               const exists = prev.some((p) => p.number === updated.number);
               if (exists) {
@@ -252,31 +259,14 @@ export function PumpsScreen() {
   }, []);
 
   useEffect(() => {
-    if (useSimulator) {
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-      setPumps(createInitialSimPumps());
-      setIsLoading(false);
-
-      const timer = window.setInterval(() => {
-        setPumps((prev) => tickSimPumps(prev));
-      }, 1000);
-
-      return () => window.clearInterval(timer);
-    }
-
-    loadPumpsFromApi();
+    loadPumps();
     const cleanupWs = connectWebSocket();
-
-    return () => {
-      cleanupWs();
-    };
-  }, [useSimulator, loadPumpsFromApi, connectWebSocket]);
+    return () => { cleanupWs(); };
+  }, [loadPumps, connectWebSocket]);
 
   if (isLoading) {
     return (
-      <Screen title="Pumps" actions={<DataSourceToggle />}>
+      <Screen title="Pumps">
         <Center h={300}>
           <Loader size="lg" />
         </Center>
@@ -285,16 +275,7 @@ export function PumpsScreen() {
   }
 
   return (
-    <Screen title="Pumps" actions={<DataSourceToggle />}>
-      {useSimulator && (
-        <Group mb="sm" gap="xs">
-          <Badge variant="light" color="blue">SIMULATOR</Badge>
-          <Text size="xs" c="dimmed">
-            Live backend bypassed for UI development
-          </Text>
-        </Group>
-      )}
-
+    <Screen title="Pumps">
       <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="md">
         {pumps.map((pump) => (
           <PumpCard key={pump.id} pump={pump} />

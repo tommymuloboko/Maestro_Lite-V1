@@ -1,5 +1,5 @@
-import { Paper, Stack, Group, Text, Badge, Box, Button, Divider } from '@mantine/core';
-import { IconGasStation, IconHistory, IconBolt } from '@tabler/icons-react';
+import { Paper, Stack, Group, Text, Badge, Box, UnstyledButton } from '@mantine/core';
+import { IconDroplet, IconHistory, IconBolt } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
 import type { Pump, PumpStatus } from '@/types/pumps';
 import { formatMoney, formatVolume } from '@/lib/utils/money';
@@ -9,325 +9,204 @@ interface PumpCardProps {
   pump: Pump;
 }
 
-const statusColors: Record<PumpStatus, string> = {
-  idle: 'gray',
-  authorized: 'blue',
-  fueling: 'green',
-  offline: 'gray',
-  error: 'orange',
+// ─── Status config ──────────────────────────────────────────
+
+const statusConfig: Record<PumpStatus, { color: string; bg: string; label: string }> = {
+  idle: { color: '#64748b', bg: 'rgba(100,116,139,0.10)', label: 'IDLE' },
+  authorized: { color: '#3b82f6', bg: 'rgba(59,130,246,0.10)', label: 'AUTH' },
+  fueling: { color: '#22c55e', bg: 'rgba(34,197,94,0.10)', label: 'FUELING' },
+  offline: { color: '#94a3b8', bg: 'rgba(148,163,184,0.08)', label: 'OFFLINE' },
+  error: { color: '#f59e0b', bg: 'rgba(245,158,11,0.10)', label: 'ERROR' },
 };
 
-const statusLabels: Record<PumpStatus, string> = {
-  idle: 'IDLE',
-  authorized: 'AUTHORIZED',
-  fueling: 'FUELING',
-  offline: 'OFFLINE',
-  error: 'ERROR',
-};
-
-function fuelAccent(fuelType: string): string {
+function fuelColor(fuelType: string): string {
   const t = fuelType.toLowerCase();
   if (t.includes('diesel')) return '#3b82f6';
   if (t.includes('petrol') || t.includes('gasoline') || t.includes('unleaded')) return '#f97316';
   return '#22c55e';
 }
 
-function statusDotColor(status: PumpStatus): string {
-  switch (status) {
-    case 'fueling':
-      return '#22c55e';
-    case 'authorized':
-      return '#3b82f6';
-    case 'error':
-      return '#f59e0b';
-    case 'offline':
-      return '#9ca3af';
-    default:
-      return '#94a3b8';
-  }
-}
+// ─── Component ──────────────────────────────────────────────
 
 export function PumpCard({ pump }: PumpCardProps) {
   const navigate = useNavigate();
-
+  const cfg = statusConfig[pump.status];
   const isFueling = pump.status === 'fueling';
   const isOffline = pump.status === 'offline';
+  const nozzles = pump.nozzles ?? [];
 
-  const txFuel = pump.currentTransaction?.fuelType ?? (pump.nozzles?.[0]?.fuelType ?? '—');
-  const accent = fuelAccent(txFuel);
-  const dot = statusDotColor(pump.status);
-
-  const amount = pump.currentTransaction ? formatMoney(pump.currentTransaction.amount) : '—';
-  const volume = pump.currentTransaction ? formatVolume(pump.currentTransaction.volume) : '—';
-
-  // ── FIX: Use fuelTypeId for reliable active-nozzle matching ──
-  // The old code did loose .includes() string matching on fuel names,
-  // which could false-positive (e.g. "Diesel 50" matching "Diesel 500").
-  // Instead, compare the fuelTypeId set by ptsToPump's buildNozzles.
-  const activeFuelTypeId = pump.currentTransaction
-    ? pump.nozzles?.find((n) => n.fuelType === pump.currentTransaction?.fuelType)?.fuelTypeId
-    : undefined;
+  const txFuel = pump.currentTransaction?.fuelType ?? nozzles[0]?.fuelType ?? '—';
+  const accent = fuelColor(txFuel);
+  const hasTransaction = pump.currentTransaction != null;
 
   return (
     <Paper
-      p="md"
-      radius="lg"
+      radius="md"
       withBorder
       style={{
-        background: 'linear-gradient(180deg, #ffffff 0%, #fbfbfc 100%)',
-        boxShadow: '0 6px 20px rgba(15, 23, 42, 0.06)',
         overflow: 'hidden',
+        opacity: isOffline ? 0.6 : 1,
+        transition: 'opacity 0.2s, box-shadow 0.2s',
+        boxShadow: isFueling
+          ? `0 0 0 2px ${cfg.color}40, 0 4px 16px rgba(0,0,0,0.08)`
+          : '0 2px 8px rgba(0,0,0,0.06)',
       }}
     >
-      <style>
-        {`
-          @keyframes pumpBlink { 0%, 60% { opacity: 1; } 61%, 100% { opacity: 0.25; } }
+      {/* ── Accent top stripe ── */}
+      <Box style={{ height: 3, background: cfg.color }} />
 
-          @media (max-width: 980px) {
-            .pump-body-grid { grid-template-columns: 1fr !important; }
-          }
-        `}
-      </style>
-
-      <Stack gap={10}>
-        {/* Header */}
-        <Group justify="space-between" align="flex-start" wrap="nowrap">
-          <Group gap="sm" align="center" style={{ minWidth: 0 }}>
+      <Stack gap={0} p="sm">
+        {/* ── Header: Pump name + status ── */}
+        <Group justify="space-between" align="center" wrap="nowrap" mb={8}>
+          <Group gap={8} align="center" wrap="nowrap" style={{ minWidth: 0 }}>
+            <Text fw={700} size="md" truncate>
+              {pump.name}
+            </Text>
             <Box
               style={{
-                width: 36,
-                height: 36,
-                borderRadius: 12,
-                background: 'linear-gradient(180deg, #f8fafc, #eef2f7)',
-                border: '1px solid rgba(0,0,0,0.08)',
-                display: 'grid',
-                placeItems: 'center',
+                width: 8,
+                height: 8,
+                borderRadius: 999,
+                background: cfg.color,
                 flexShrink: 0,
+                animation: isFueling ? 'pumpPulse 1.5s ease-in-out infinite' : undefined,
               }}
-            >
-              <IconGasStation size={18} />
-            </Box>
-
-            <Box style={{ minWidth: 0 }}>
-              <Group gap={8} align="center" wrap="nowrap">
-                <Text fw={800} size="lg" style={{ whiteSpace: 'nowrap' }}>
-                  {pump.name}
-                </Text>
-                <Box
-                  style={{
-                    width: 10,
-                    height: 10,
-                    borderRadius: 999,
-                    background: dot,
-                    boxShadow: '0 0 0 4px rgba(15, 23, 42, 0.06)',
-                    flexShrink: 0,
-                  }}
-                />
-              </Group>
-
-              <Badge
-                size="sm"
-                color={statusColors[pump.status]}
-                variant={pump.status === 'idle' ? 'light' : 'filled'}
-                styles={{ root: { fontWeight: 800, letterSpacing: 0.4 } }}
-              >
-                {statusLabels[pump.status]}
-              </Badge>
-            </Box>
+            />
           </Group>
 
-          {isFueling && (
-            <Badge
-              variant="light"
-              color="green"
-              leftSection={<IconBolt size={12} />}
-              styles={{ root: { fontWeight: 800 } }}
-            >
-              LIVE
-            </Badge>
-          )}
-        </Group>
-
-        {/* Pump body */}
-        <Box
-          style={{
-            borderRadius: 16,
-            border: '1px solid rgba(0,0,0,0.08)',
-            background: 'linear-gradient(180deg, #f7f8fb 0%, #ffffff 100%)',
-            padding: 10,
-          }}
-        >
-          <Box
-            className="pump-body-grid"
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '108px minmax(0, 1fr)',
-              gap: 10,
-              alignItems: 'stretch',
+          <Badge
+            size="xs"
+            variant="light"
+            color={cfg.color}
+            styles={{
+              root: {
+                background: cfg.bg,
+                color: cfg.color,
+                fontWeight: 700,
+                fontSize: 10,
+                letterSpacing: 0.5,
+                flexShrink: 0,
+              },
             }}
           >
-            {/* Nozzles (max 2) */}
-            <Stack gap={10}>
-              {(pump.nozzles ?? []).slice(0, 2).map((nozzle) => {
-                const nFuel = nozzle.fuelType ?? 'Fuel';
-                const nAccent = fuelAccent(nFuel);
-                // FIX: match by fuelTypeId instead of loose string includes
-                const isActive = isFueling && activeFuelTypeId != null && nozzle.fuelTypeId === activeFuelTypeId;
+            {isFueling && <IconBolt size={10} style={{ marginRight: 2 }} />}
+            {cfg.label}
+          </Badge>
+        </Group>
 
-                return (
-                  <Box key={nozzle.id} style={{ display: 'flex', gap: 10, alignItems: 'center', minWidth: 0 }}>
-                    <Box
-                      style={{
-                        width: 22,
-                        height: 54,
-                        borderRadius: 12,
-                        background: isActive
-                          ? `linear-gradient(180deg, ${nAccent}, rgba(0,0,0,0.18))`
-                          : 'linear-gradient(180deg, #ffffff, #e5e7eb)',
-                        border: '1px solid rgba(0,0,0,0.10)',
-                        boxShadow: isActive ? `0 0 0 3px ${nAccent}22` : 'none',
-                        position: 'relative',
-                        flexShrink: 0,
-                        overflow: 'hidden',
-                      }}
-                    >
-                      <Box
-                        style={{
-                          position: 'absolute',
-                          right: -10,
-                          top: 20,
-                          width: 16,
-                          height: 6,
-                          borderRadius: 6,
-                          background: 'rgba(15,23,42,0.18)',
-                        }}
-                      />
-                    </Box>
-
-                    <Box style={{ minWidth: 0, flex: 1 }}>
-                      <Text size="xs" fw={800} truncate style={{ lineHeight: 1.1 }}>
-                        {nFuel}
-                      </Text>
-                      <Text size="xs" c="dimmed" style={{ lineHeight: 1.1 }}>
-                        {(nozzle.totalizer ?? 0).toLocaleString()} L
-                      </Text>
-                    </Box>
-                  </Box>
-                );
-              })}
-
-              {/* Show placeholder if no nozzles detected */}
-              {(pump.nozzles ?? []).length === 0 && (
-                <Text size="xs" c="dimmed" ta="center" py="sm">
-                  No nozzles
-                </Text>
-              )}
-            </Stack>
-
-            {/* LCD display */}
-            <Box style={{ minWidth: 0 }}>
-              <Box
-                style={{
-                  position: 'relative',
-                  borderRadius: 14,
-                  border: '1px solid rgba(0,0,0,0.14)',
-                  background: isOffline
-                    ? 'linear-gradient(180deg, #0f172a, #111827)'
-                    : 'linear-gradient(180deg, #08131f, #0b1220)',
-                  padding: 12,
-                  overflow: 'hidden',
-                  boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.04)',
-                  height: 200,
-                  display: 'flex',
-                  flexDirection: 'column',
-                }}
-              >
-                {/* scanline */}
-                <Box
-                  style={{
-                    position: 'absolute',
-                    inset: 0,
-                    background:
-                      'repeating-linear-gradient(0deg, rgba(255,255,255,0.02), rgba(255,255,255,0.02) 1px, rgba(255,255,255,0) 3px, rgba(255,255,255,0) 6px)',
-                    pointerEvents: 'none',
+        {/* ── Fuel type chips ── */}
+        {nozzles.length > 0 ? (
+          <Group gap={6} mb={10} wrap="wrap">
+            {nozzles.slice(0, 3).map((n) => {
+              const c = fuelColor(n.fuelType);
+              const isActive = hasTransaction && pump.currentTransaction?.fuelType === n.fuelType;
+              return (
+                <Badge
+                  key={n.id}
+                  size="sm"
+                  variant="dot"
+                  styles={{
+                    root: {
+                      color: isActive ? c : '#64748b',
+                      borderColor: isActive ? c : 'rgba(0,0,0,0.08)',
+                      fontWeight: isActive ? 700 : 500,
+                      fontSize: 11,
+                    },
                   }}
-                />
+                >
+                  <IconDroplet size={10} style={{ marginRight: 3, color: c }} />
+                  {n.fuelType}
+                </Badge>
+              );
+            })}
+          </Group>
+        ) : (
+          <Text size="xs" c="dimmed" mb={10}>No nozzles configured</Text>
+        )}
 
-                <Group justify="space-between" align="flex-start" wrap="nowrap">
-                  <Box style={{ minWidth: 0 }}>
-                    <Text size="xs" c="rgba(255,255,255,0.65)" fw={800}>
-                      {isFueling ? 'CURRENT SALE' : pump.status === 'authorized' ? 'AUTHORIZED' : 'READY'}
-                    </Text>
-                    <Text size="xs" c="rgba(255,255,255,0.55)" mt={2} truncate>
-                      {txFuel}
-                    </Text>
-                  </Box>
-
-                  <Box
-                    style={{
-                      width: 10,
-                      height: 10,
-                      borderRadius: 999,
-                      background: isFueling ? accent : 'rgba(148,163,184,0.7)',
-                      animation: isFueling ? 'pumpBlink 1.2s infinite' : undefined,
-                      boxShadow: isFueling ? `0 0 0 6px ${accent}18` : 'none',
-                      flexShrink: 0,
-                    }}
-                  />
-                </Group>
-
-                <Divider my="sm" color="rgba(255,255,255,0.10)" />
-
-                <Group justify="space-between" align="flex-end" wrap="nowrap" style={{ marginTop: 'auto' }}>
-                  <Box>
-                    <Text size="xs" c="rgba(255,255,255,0.55)" fw={800}>
-                      LITERS
-                    </Text>
-                    <Text
-                      size="xl"
-                      c="white"
-                      fw={900}
-                      ff="monospace"
-                      style={{ fontVariantNumeric: 'tabular-nums' }}
-                    >
-                      {volume}
-                    </Text>
-                    <Text size="xs" c="rgba(255,255,255,0.55)" fw={800} mt={6}>
-                      AMOUNT
-                    </Text>
-                    <Text
-                      size="xl"
-                      fw={900}
-                      ff="monospace"
-                      style={{ color: isFueling ? accent : 'white', fontVariantNumeric: 'tabular-nums' }}
-                    >
-                      {amount}
-                    </Text>
-                  </Box>
-                </Group>
-
-                {isOffline && (
-                  <Text size="xs" c="rgba(255,255,255,0.55)" mt="sm">
-                    Communication lost
-                  </Text>
-                )}
+        {/* ── Metrics row ── */}
+        <Box
+          style={{
+            borderRadius: 8,
+            background: 'var(--mantine-color-dark-8, #1e293b)',
+            padding: '10px 12px',
+          }}
+        >
+          {hasTransaction ? (
+            <Group justify="space-between" align="flex-end" wrap="nowrap" gap="xs">
+              <Box style={{ minWidth: 0 }}>
+                <Text size="10px" tt="uppercase" fw={600} c="rgba(255,255,255,0.5)" style={{ letterSpacing: 0.5 }}>
+                  Liters
+                </Text>
+                <Text
+                  fw={800}
+                  ff="monospace"
+                  c="white"
+                  style={{ fontSize: 18, lineHeight: 1.2, fontVariantNumeric: 'tabular-nums' }}
+                >
+                  {formatVolume(pump.currentTransaction!.volume)}
+                </Text>
               </Box>
-            </Box>
-          </Box>
+
+              <Box style={{ minWidth: 0, textAlign: 'right' }}>
+                <Text size="10px" tt="uppercase" fw={600} c="rgba(255,255,255,0.5)" style={{ letterSpacing: 0.5 }}>
+                  Amount
+                </Text>
+                <Text
+                  fw={800}
+                  ff="monospace"
+                  style={{
+                    fontSize: 18,
+                    lineHeight: 1.2,
+                    fontVariantNumeric: 'tabular-nums',
+                    color: isFueling ? accent : 'white',
+                  }}
+                >
+                  {formatMoney(pump.currentTransaction!.amount)}
+                </Text>
+              </Box>
+            </Group>
+          ) : (
+            <Text size="xs" c="rgba(255,255,255,0.4)" ta="center">
+              {isOffline ? 'Offline' : 'No recent transaction'}
+            </Text>
+          )}
         </Box>
 
-        {/* Footer */}
-        <Group justify="flex-end">
-          <Button
-            variant="subtle"
-            size="xs"
-            leftSection={<IconHistory size={14} />}
-            onClick={() => navigate(paths.pumpTransactions(pump.id))}
-          >
-            View Transactions
-          </Button>
-        </Group>
+        {/* ── Footer ── */}
+        <UnstyledButton
+          onClick={() => navigate(paths.pumpTransactions(pump.id))}
+          mt={8}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            padding: '6px 0',
+            borderRadius: 6,
+            fontSize: 12,
+            fontWeight: 600,
+            color: 'var(--mantine-color-brand-6, #3b82f6)',
+            transition: 'background 0.15s',
+          }}
+          styles={{
+            root: {
+              '&:hover': { background: 'rgba(59,130,246,0.06)' },
+            },
+          }}
+        >
+          <IconHistory size={14} />
+          Transactions
+        </UnstyledButton>
       </Stack>
+
+      {/* Keyframes */}
+      <style>{`
+        @keyframes pumpPulse {
+          0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34,197,94,0.4); }
+          50% { opacity: 0.6; box-shadow: 0 0 0 4px rgba(34,197,94,0); }
+        }
+      `}</style>
     </Paper>
   );
 }
