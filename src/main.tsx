@@ -23,7 +23,7 @@ document.addEventListener('drop', (e) => e.preventDefault());
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <MantineProvider theme={mantineTheme}>
+    <MantineProvider theme={mantineTheme} defaultColorScheme="light" forceColorScheme="light">
       <Notifications position="top-right" />
       <QueryClientProvider client={queryClient}>
         <AuthProvider>

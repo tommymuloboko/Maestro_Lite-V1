@@ -174,7 +174,7 @@ export default function LoginScreen() {
                 position: "relative",
               }}
             >
-              <IconGasStation size={44} stroke={1.3} color="#f97316" />
+              <IconGasStation size={44} stroke={1.3} color="#2ca01c" />
             </Box>
 
             {/* Brand text */}

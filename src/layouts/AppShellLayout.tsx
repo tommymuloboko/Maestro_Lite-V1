@@ -6,7 +6,7 @@ import SideNav from "./SideNav";
 import BackofficeHeader from "./HeaderBar";
 
 const SIDEBAR_WIDTH = 240;
-const SIDEBAR_MARGIN = 10;
+const SIDEBAR_MARGIN = 0;
 
 export default function AppShellLayout() {
   const isMobile = useMediaQuery("(max-width: 768px)");
@@ -46,7 +46,7 @@ export default function AppShellLayout() {
         <Box
           style={{
             height: "100%",
-            borderRadius: 12,
+            borderRadius: 0,
             overflow: "hidden",
           }}
         >
@@ -68,11 +68,12 @@ export default function AppShellLayout() {
         <Box
           component="header"
           style={{
-            height: 56,
-            background: "transparent",
+            height: 60,
+            background: "var(--header-bg)",
+            borderBottom: "1px solid var(--header-border)",
             display: "flex",
             alignItems: "center",
-            padding: "0 16px",
+            padding: "0 24px",
           }}
         >
           <BackofficeHeader onToggleNavbar={handleToggle} />

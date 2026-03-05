@@ -25,7 +25,7 @@ const toneStyles: Record<SalesMetricCardProps['color'], { background: string; bo
   orange: {
     background: 'linear-gradient(135deg, #fff7ed 0%, #fff4e8 100%)',
     border: '#ffd5b0',
-    iconBg: '#f97316',
+    iconBg: '#2ca01c',
     iconColor: '#ffffff',
   },
   red: {

@@ -1,18 +1,18 @@
 import { createTheme } from '@mantine/core';
 import type { MantineColorsTuple } from '@mantine/core';
 
-// Green — system chrome: sidebar, nav, success states
+// Green — QuickBooks Green
 const brandGreen: MantineColorsTuple = [
-  '#e6fff0',
-  '#c3f9d8',
-  '#8cf0b8',
-  '#4de894',
-  '#22c55e', // main
-  '#16a34a',
-  '#15803d',
-  '#166534',
-  '#14532d',
-  '#0d3320',
+  '#ebf6e7',
+  '#d7eed1',
+  '#abdd9d',
+  '#81cc69',
+  '#56ba34',
+  '#2ca01c', // main quickbooks green
+  '#217f14',
+  '#195e0e',
+  '#103e08',
+  '#061f03',
 ];
 
 // Fuel Orange — action & attention: CTA buttons, warnings, highlights
@@ -30,17 +30,17 @@ const fuelOrange: MantineColorsTuple = [
 ];
 
 export const themeTokens = {
-  green: {
-    50:  '#e6fff0',
-    100: '#c3f9d8',
-    200: '#8cf0b8',
-    300: '#4de894',
-    400: '#22c55e',
-    500: '#16a34a',
-    600: '#15803d',
-    700: '#166534',
-    800: '#14532d',
-    900: '#0d3320',
+  brand: {
+    50:  '#ebf6e7',
+    100: '#d7eed1',
+    200: '#abdd9d',
+    300: '#81cc69',
+    400: '#56ba34',
+    500: '#2ca01c',
+    600: '#217f14',
+    700: '#195e0e',
+    800: '#103e08',
+    900: '#061f03',
   },
   fuelOrange: {
     50:  '#fff7ed',
@@ -57,7 +57,7 @@ export const themeTokens = {
 } as const;
 
 export const mantineTheme = createTheme({
-  primaryColor: 'fuel',
+  primaryColor: 'brand',
   colors: {
     brand: brandGreen,
     fuel: fuelOrange,

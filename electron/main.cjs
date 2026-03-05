@@ -11,7 +11,7 @@ const path = require('path');
 
 // ─── Environment ──────────────────────────────────────────────
 const isDev = !app.isPackaged;
-const DEV_URL = 'http://localhost:5173';
+const DEV_URL = 'http://localhost:5176';
 
 /** @type {BrowserWindow | null} */
 let mainWindow = null;

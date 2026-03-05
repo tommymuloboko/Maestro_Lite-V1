@@ -22,7 +22,7 @@ export default defineConfig({
 
   server: {
     // Fixed port so Electron dev:electron can find it
-    port: 5173,
+    port: 5176,
     strictPort: true,
   },
 })

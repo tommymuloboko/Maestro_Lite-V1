@@ -106,9 +106,9 @@ export default function BackofficeHeader({
               display: "flex",
               alignItems: "center",
               flexShrink: 0,
-              background: "rgba(249, 115, 22, 0.13)",
-              color: "#c2410c",
-              border: "1px solid rgba(249, 115, 22, 0.24)",
+              background: "var(--brand-green-light)",
+              color: "var(--brand-green-deep)",
+              border: "1px solid var(--brand-green-focus)",
             },
           }}
         >
@@ -122,13 +122,13 @@ export default function BackofficeHeader({
             py={10}
             visibleFrom="sm"
             style={{
-              background: "rgba(249, 115, 22, 0.1)",
-              border: "1px solid rgba(249, 115, 22, 0.22)",
+              background: "var(--brand-green-light)",
+              border: "1px solid var(--brand-green-focus)",
               borderRadius: 10,
               minWidth: 0,
             }}
           >
-            <Text fw={800} c="#c2410c" truncate>
+            <Text fw={800} c="var(--brand-green-deep)" truncate>
               {bannerText}
             </Text>
           </Box>
@@ -198,7 +198,7 @@ export default function BackofficeHeader({
                 background: "rgba(255,255,255,0.78)",
               }}
             >
-              <Avatar radius="md" color="fuel" size={28}>
+              <Avatar radius="md" color="brand" size={28}>
                 {avatarInitial}
               </Avatar>
             </UnstyledButton>

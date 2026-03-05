@@ -116,7 +116,7 @@ export function ShiftsScreen() {
             {shift.is_open ? (
               <Button
                 size="xs"
-                color="orange"
+                color="brand"
                 variant="light"
                 onClick={(e) => {
                   e.stopPropagation();
