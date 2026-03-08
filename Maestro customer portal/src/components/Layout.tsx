@@ -18,6 +18,7 @@ import {
   Gauge,
   UserCheck,
   FileBarChart,
+  ArrowLeftRight,
 } from 'lucide-react';
 
 export default function Layout() {
@@ -25,6 +26,7 @@ export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [mgmtOpen, setMgmtOpen] = useState(() => location.pathname.includes('/management/'));
+  const [transactionsOpen, setTransactionsOpen] = useState(() => location.pathname.includes('/transactions/'));
   const [reportsOpen, setReportsOpen] = useState(() => location.pathname.includes('/station/reports/'));
 
   const handleLogout = () => {
@@ -128,6 +130,24 @@ export default function Layout() {
                   <span>My Orders</span>
                   <ChevronRight size={14} className="sidebar-link-arrow" />
                 </NavLink>
+
+                <button
+                  className={`sidebar-link sidebar-dropdown-toggle${transactionsOpen ? ' open' : ''}`}
+                  onClick={() => setTransactionsOpen(o => !o)}
+                >
+                  <ArrowLeftRight size={18} />
+                  <span>Transactions</span>
+                  <ChevronDown size={14} className={`sidebar-dropdown-arrow${transactionsOpen ? ' rotated' : ''}`} />
+                </button>
+                {transactionsOpen && (
+                  <div className="sidebar-dropdown-items">
+                    <NavLink to="/dashboard/transactions/fuel" className="sidebar-link sidebar-sub-link">
+                      <Fuel size={16} />
+                      <span>Fuel Transactions</span>
+                      <ChevronRight size={14} className="sidebar-link-arrow" />
+                    </NavLink>
+                  </div>
+                )}
 
                 <button
                   className={`sidebar-link sidebar-dropdown-toggle${mgmtOpen ? ' open' : ''}`}

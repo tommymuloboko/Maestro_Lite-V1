@@ -20,6 +20,7 @@ import StatementsPage from './pages/StatementsPage';
 import DriverPage from './pages/DriverPage';
 import VehiclePage from './pages/VehiclePage';
 import UsersPage from './pages/UsersPage';
+import FuelTransactionsPage from './pages/FuelTransactionsPage';
 
 export default function App() {
   return (
@@ -44,6 +45,7 @@ export default function App() {
               <Route path="management/driver" element={<DriverPage />} />
               <Route path="management/vehicle" element={<VehiclePage />} />
               <Route path="management/users" element={<UsersPage />} />
+              <Route path="transactions/fuel" element={<FuelTransactionsPage />} />
             </Route>
 
             {/* Station Manager Routes */}
