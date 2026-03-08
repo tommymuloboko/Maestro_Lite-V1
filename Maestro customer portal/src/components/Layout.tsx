@@ -19,6 +19,7 @@ import {
   UserCheck,
   FileBarChart,
   ArrowLeftRight,
+  History,
 } from 'lucide-react';
 
 export default function Layout() {
@@ -144,6 +145,11 @@ export default function Layout() {
                     <NavLink to="/dashboard/transactions/fuel" className="sidebar-link sidebar-sub-link">
                       <Fuel size={16} />
                       <span>Fuel Transactions</span>
+                      <ChevronRight size={14} className="sidebar-link-arrow" />
+                    </NavLink>
+                    <NavLink to="/dashboard/transactions/history" className="sidebar-link sidebar-sub-link">
+                      <History size={16} />
+                      <span>Transaction History</span>
                       <ChevronRight size={14} className="sidebar-link-arrow" />
                     </NavLink>
                   </div>

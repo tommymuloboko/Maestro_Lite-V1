@@ -21,6 +21,7 @@ import DriverPage from './pages/DriverPage';
 import VehiclePage from './pages/VehiclePage';
 import UsersPage from './pages/UsersPage';
 import FuelTransactionsPage from './pages/FuelTransactionsPage';
+import TransactionHistoryPage from './pages/TransactionHistoryPage';
 
 export default function App() {
   return (
@@ -46,6 +47,7 @@ export default function App() {
               <Route path="management/vehicle" element={<VehiclePage />} />
               <Route path="management/users" element={<UsersPage />} />
               <Route path="transactions/fuel" element={<FuelTransactionsPage />} />
+              <Route path="transactions/history" element={<TransactionHistoryPage />} />
             </Route>
 
             {/* Station Manager Routes */}
